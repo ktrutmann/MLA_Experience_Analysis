@@ -1,0 +1,10 @@
+*.pyc
+*.RData
+*.Rproj
+*.Rproj.user
+.Rhistory
+*.sublime-workspace
+*.png
+*.jpg
+*.pdf
+*.bmp
