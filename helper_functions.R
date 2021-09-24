@@ -1,5 +1,7 @@
 require(tidyverse)
 
+# TODO: (3) otree_reshape can be entirely replaced by pivot_longer!
+
 # Function to shape the otree sql database such that each participant gets a file:
 # As preparation, the app name at the start of each variable should be removed, and
 # the database should be only from one app (pre-split)

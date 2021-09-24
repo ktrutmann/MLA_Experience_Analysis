@@ -1,6 +1,7 @@
 *.pyc
 *.RData
 *.Rproj
+*.Rprofile
 *.Rproj.user
 .Rhistory
 *.sublime-workspace
@@ -8,3 +9,4 @@
 *.jpg
 *.pdf
 *.bmp
+/renv/
