@@ -1,7 +1,10 @@
 library(tidyverse)
-library(lme4)
-library(lmerTest)
-library(sandwich)
+# library(lme4)
+# library(lmerTest)
+# library(sandwich)
+
+# The list where all objects for the paper will be stored
+r_obj_list <- list()
 
 # A function to retreive the belief in the last investable period in the
 # baseline as well as a specified condition

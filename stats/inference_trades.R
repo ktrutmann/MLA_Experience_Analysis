@@ -1,7 +1,7 @@
 library(tidyverse)
-library(lme4)
-library(lmerTest)
-library(sandwich)
+# library(lme4)
+# library(lmerTest)
+# library(sandwich)
 
 # TODO: (1) Try out car::contr.Sum(levels=derp). Tweet tip by Jana!
 
