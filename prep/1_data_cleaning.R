@@ -1,9 +1,8 @@
 library(tidyverse)
-# TODO: (1) Get renv to work properly...
 
 # Setup and load data
-raw_file_path <- file.path('..', 'data', 'raw', 'pre-pilot',
-	'all_apps_wide_2020-05-03.csv')
+raw_file_path <- file.path('..', 'data', 'raw', 'bot-test',
+	'all_apps_wide.csv')
 processed_data_path <- file.path('..', 'data', 'processed')
 
 dat <- read_csv(raw_file_path) %>%
@@ -25,36 +24,10 @@ dat_main_task <- dplyr::select(dat,
 dat_main_task <- mutate(dat_main_task,
 	investable = as.logical(investable),
 	condition_name = factor(condition_name,
-	   levels = c('full_control', 'full_control_with_MLA',
-	   		      'blocked_full_info', 'blocked_blocked_info'),
-	   labels = c('Baseline', 'MLA', 'Blocked Trades', 'Blocked Info'))) %>%
+	   levels = c('full_control', 'blocked_full_info', 'blocked_blocked_info'),
+	   labels = c('Baseline', 'Blocked Trades', 'Blocked Info'))) %>%
 	rename(condition = condition_name,
 		participant = participant.code)
-
-
-# Only for the first pre-pilot:
-if (str_detect(raw_file_path, '2020-05-03')) {
-	# The order of the "global path id" is mixed up together with the conditions.
-	new_global_path_ids <- c()
-	for (this_subj in unique(dat_main_task$participant)) {
-		old_ids <- filter(dat_main_task, participant == this_subj) %>%
-			pull(global_path_id)
-		n_paths <- length(unique(old_ids))
-		path_lengths <- rle(old_ids)$lengths
-		for (i in seq_len(n_paths)) {
-			new_global_path_ids <- c(new_global_path_ids, rep(i, each = path_lengths[i]))
-		}
-	}
-	# TODO: (2) Fixme?
-	dat_main_task$global_path_id <- new_global_path_ids
-	rm(new_global_path_ids)
-
-	# Cut the last path, because it is incomplete!
-	dat_main_task <- filter(dat_main_task, global_path_id != max(global_path_id))
-
-	# Last rounds in 'full_control_with_MLA' blocks are wrongly marked as investable!
-	dat_main_task$investable[dat_main_task$i_round_in_path == 12] <- FALSE
-}
 
 
 # Creating the wide table --------------------------------------------------

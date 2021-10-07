@@ -13,5 +13,12 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"todoreview": {
+			"exclude_folders": [
+				"*renv*"
+			]
+		}
+	}
 }

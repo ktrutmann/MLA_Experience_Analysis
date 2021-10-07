@@ -18,19 +18,57 @@ dat_all_wide <- read_delim(
 
 # Constants
 rounds_per_phase <- 4  # Make sure this matches the python one!
+up_probs <- c(.65, .35) # The probabilities of an upward move in an up and down drift
+max_hold <- 4
 
 # Derivative Constants
 n_blocks <- max(dat_main_task$global_path_id)
 n_participants <- nrow(dat_all_wide)
 
-
 # General additional variables:
-dat_main_long <- mutate(dat_main_long,
+dat_main_task <- mutate(dat_main_task,
 	hold_drift_flipped = ifelse(drift > .5, hold, -hold),
-	belief_drift_flipped = ifelse(drift > .5, belief, 100 - belief))
+	belief_drift_flipped = ifelse(drift > .5, belief, 100 - belief),
+	round_label = case_when(
+		i_round_in_path < rounds_per_phase ~ 'p1',
+		i_round_in_path == rounds_per_phase ~ 'end_p1',
+		i_round_in_path == rounds_per_phase * 2 ~ 'end_p2',
+		i_round_in_path == rounds_per_phase * 2 + 1 ~ 'extra_round',
+		i_round_in_path > rounds_per_phase ~ 'p2'),
+	hold_after_trade = lead(hold),
+	price_up_since_last = if_else(i_round_in_path == 0, NA,
+		c(NA, diff(price) > 0)))
 
-# TODO: (3) Create a variable with some key indicators for a rational trader
 
+# Rational actor:
+dat_main_task$rational_belief <- 999
+dat_main_task$rational_belief_state <- 999
+dat_main_task$rational_hold <- 999
+for (i in seq_len(nrow(dat_main_task))) {
+	if (dat_main_task$i_round_in_path[i] == 0) {
+		dat_main_task$rational_belief[i] <- .5
+		dat_main_task$rational_belief_state[i] <- .5
+		dat_main_task$rational_hold[i] <- 0
+		next
+	}
+
+	dat_main_task$rational_belief_state[i] <- with(dat_main_task,
+		(rational_belief_state[i - 1] * up_probs[2 - price_up_since_last[i]]) /
+			(rational_belief_state[i - 1] * up_probs[2 - price_up_since_last[i]] +
+			((1 - rational_belief_state[i - 1]) * up_probs[price_up_since_last[i] + 1])))
+
+	dat_main_task$rational_belief[i] <- dat_main_task$rational_belief_state[i] * up_probs[1] +
+		(1 - dat_main_task$rational_belief_state[i]) * up_probs[2]
+}
+
+
+# TODO: (2) This needs to take account of the blocked trading
+dat_main_task <- mutate(dat_main_task,
+	rational_hold = case_when(
+		dat_main_task$rational_belief > .5 ~ max_hold,
+		dat_main_task$rational_belief < .5 ~ -max_hold,
+		TRUE ~ 0))
+	
 
 # DE Measure --------------------------------------------------------------
 # This tibble contains one row per price path
