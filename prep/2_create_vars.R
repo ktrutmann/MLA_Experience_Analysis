@@ -18,26 +18,60 @@ dat_all_wide <- read_delim(
 
 # Constants
 rounds_per_phase <- 4  # Make sure this matches the python one!
-up_probs <- c(.65, .35) # The probabilities of an upward move in an up and down drift
+up_probs <- c(.65, .35) # The probs of an upward move in an up and down drift
 max_hold <- 4
 
 # Derivative Constants
 n_blocks <- max(dat_main_task$global_path_id)
-n_participants <- nrow(dat_all_wide)
+n_participants <- n_distinct(dat_main_task$participant)
 
 # General additional variables:
 dat_main_task <- mutate(dat_main_task,
-	hold_drift_flipped = ifelse(drift > .5, hold, -hold),
-	belief_drift_flipped = ifelse(drift > .5, belief, 100 - belief),
+  belief_diff_since_last = c(NA, diff(belief)),
 	round_label = case_when(
 		i_round_in_path < rounds_per_phase ~ 'p1',
 		i_round_in_path == rounds_per_phase ~ 'end_p1',
 		i_round_in_path == rounds_per_phase * 2 ~ 'end_p2',
 		i_round_in_path == rounds_per_phase * 2 + 1 ~ 'extra_round',
 		i_round_in_path > rounds_per_phase ~ 'p2'),
-	hold_after_trade = lead(hold),
 	price_up_since_last = if_else(i_round_in_path == 0, NA,
-		c(NA, diff(price) > 0)))
+		c(NA, diff(price) > 0)),
+  hold_type = case_when(
+    hold > 0 ~ 'Holding',
+    hold < 0 ~ 'Shorting',
+    hold == 0 ~ 'Not Inv.'),
+	hold_after_trade = replace(lead(hold), round_label == 'extra_round', NA),
+  hold_type_after_trade = case_when(
+    lead(hold) > 0 ~ 'Holding',
+    lead(hold) < 0 ~ 'Shorting',
+    TRUE ~ 'None'),
+  hold_type_after_trade = replace(hold_type_after_trade,
+    round_label == 'extra_round', NA),
+  return_type = case_when(
+    returns > 0 ~ 'Gain',
+    returns < 0 ~ 'Loss',
+    returns == 0 ~ 'None'),
+  return_type_after_trade = case_when(
+    hold_after_trade == 0 ~ 'None',
+    sign(hold_after_trade) != sign(hold) ~ 'None',
+    round_label == 'extra_round' ~ 'None',
+    TRUE ~ return_type),
+  favorable_move_since_last = case_when(
+    hold == 0 ~ 'None',
+    (hold > 0) == price_up_since_last ~ 'Favorable',
+    (hold > 0) != price_up_since_last ~ 'Unfavorable',
+    TRUE ~ 'None'))
+
+# Determine whether someone was continualy invested and / or
+# in a gain/loss position:
+dat_main_task <- dat_main_task %>%
+  filter(round_label %in% c('p2', 'end_p2')) %>%
+  select(participant, global_path_id, hold_type, return_type_after_trade) %>%
+  group_by(participant, global_path_id) %>%
+  summarise(n_hold_types_in_p2 = n_distinct(hold_type),
+    n_return_types_after_trade_in_p2 = n_distinct(return_type_after_trade)) %>%
+  ungroup() %>%
+  right_join(dat_main_task, by = c('participant', 'global_path_id'))
 
 
 # Rational actor:
@@ -57,8 +91,8 @@ for (i in seq_len(nrow(dat_main_task))) {
 			(rational_belief_state[i - 1] * up_probs[2 - price_up_since_last[i]] +
 			((1 - rational_belief_state[i - 1]) * up_probs[price_up_since_last[i] + 1])))
 
-	dat_main_task$rational_belief[i] <- dat_main_task$rational_belief_state[i] * up_probs[1] +
-		(1 - dat_main_task$rational_belief_state[i]) * up_probs[2]
+	dat_main_task$rational_belief[i] <- dat_main_task$rational_belief_state[i] *
+    up_probs[1] + (1 - dat_main_task$rational_belief_state[i]) * up_probs[2]
 }
 
 

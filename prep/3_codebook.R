@@ -26,9 +26,13 @@ cb_dat_all_wide <- list(
 	)
 
 cb_dat_main_long <- list(
-	hold_drift_flipped = str_c('The hold variable "corrected" for the drift of the',
-		'path. If the drift is < .5, one should short, so "more shorting is better".'),
-	belief_drift_flipped = str_c('The belief variable "corrected" for the drift of',
-		'the path. If the drift is < .5, one should have a negative belief, meaning',
-		'that "less is better".')
+	belief_diff_since_last = str_c('The difference between the belief in a price',
+		'increase reported in the current round minus the one reported in the',
+		'previous round.'),
+	round_label = str_c('Labels special points in each path. p here stands for phase.',
+		'end_p1 therefore stands for "end of phase 1".'),
+	hold_after_trade = str_c('What did the portfolio look like after the investment',
+		'decision in the current round?'),
+	return_type_after_trade = str_c('If one sells a gain, then the return type',
+		'goes back to "None" after the decision. This is encoded in this variable.')
 	)

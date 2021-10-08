@@ -20,14 +20,15 @@ dat_main_task <- dplyr::select(dat,
 	names_to = c('round_number', '.value'),
 	names_sep = '\\.')
 
-# Beautify variable coding
+# Beautify variable coding and remove non-informatives:
 dat_main_task <- mutate(dat_main_task,
 	investable = as.logical(investable),
 	condition_name = factor(condition_name,
 	   levels = c('full_control', 'blocked_full_info', 'blocked_blocked_info'),
 	   labels = c('Baseline', 'Blocked Trades', 'Blocked Info'))) %>%
 	rename(condition = condition_name,
-		participant = participant.code)
+		participant = participant.code) %>%
+	select(-c('id_in_group', 'role'))
 
 
 # Creating the wide table --------------------------------------------------
