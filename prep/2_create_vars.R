@@ -60,18 +60,40 @@ dat_main_task <- mutate(dat_main_task,
     hold == 0 ~ 'None',
     (hold > 0) == price_up_since_last ~ 'Favorable',
     (hold > 0) != price_up_since_last ~ 'Unfavorable',
-    TRUE ~ 'None'))
+    TRUE ~ 'None'),
+  updated_from = if_else(lag(return_type_after_trade) == 'None', 'None',
+    str_c(lag(hold_type_after_trade), lag(return_type_after_trade), sep = ' ')))
 
 # Determine whether someone was continualy invested and / or
 # in a gain/loss position:
 dat_main_task <- dat_main_task %>%
   filter(round_label %in% c('p2', 'end_p2')) %>%
-  select(participant, global_path_id, hold_type, return_type_after_trade) %>%
   group_by(participant, global_path_id) %>%
   summarise(n_hold_types_in_p2 = n_distinct(hold_type),
-    n_return_types_after_trade_in_p2 = n_distinct(return_type_after_trade)) %>%
+    n_return_types_after_trade_in_p2 = n_distinct(return_type_after_trade),
+    n_update_types_in_p2 = n_distinct(updated_from)) %>%
   ungroup() %>%
   right_join(dat_main_task, by = c('participant', 'global_path_id'))
+
+# Determine what the main position was from which the updating in p2 happened
+# In case of a tie, invested updates overrule non-invested
+determine_majority <- function(dat) {
+  temp <- tibble(updated_from = dat) %>%
+    count(updated_from) %>%
+    filter(n == max(n))
+
+  if (nrow(temp) == 1) return(temp$updated_from) # nolint
+  temp <- filter(temp, updated_from != 'None') # nolint
+  if (nrow(temp) == 1) return(temp$updated_from) # nolint
+  return('Tie')
+}
+
+dat_main_task <- dat_main_task %>%
+  filter(round_label %in% c('p2', 'end_p2')) %>%
+  group_by(participant, global_path_id) %>%
+  summarize(majority_updates_p2 = determine_majority(updated_from)) %>%
+  ungroup() %>%
+  full_join(dat_main_task)
 
 
 # Rational actor:
@@ -102,7 +124,7 @@ dat_main_task <- mutate(dat_main_task,
 		dat_main_task$rational_belief > .5 ~ max_hold,
 		dat_main_task$rational_belief < .5 ~ -max_hold,
 		TRUE ~ 0))
-	
+
 
 # DE Measure --------------------------------------------------------------
 # This tibble contains one row per price path
