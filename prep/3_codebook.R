@@ -25,14 +25,18 @@ cb_dat_all_wide <- list(
 		'complete the experiment?')
 	)
 
-cb_dat_main_long <- list(
+cb_dat_main_task <- list(
 	belief_diff_since_last = str_c('The difference between the belief in a price',
-		'increase reported in the current round minus the one reported in the',
-		'previous round.'),
+		' increase reported in the current round minus the one reported in the',
+		' previous round.'),
+	belief_diff_since_last_flipped = str_c('Takes the belief_diff_since_last variable but',
+		' flipps its sign whenever the update was made from a price decrease.'),
+	belief_updates_bayes_corrected = str_c('Here the "correct" belief update was subtracted',
+		' from the flipped reported update, resulting in a measure of under or over updating.'),
 	round_label = str_c('Labels special points in each path. p here stands for phase.',
-		'end_p1 therefore stands for "end of phase 1".'),
+		' end_p1 therefore stands for "end of phase 1".'),
 	hold_after_trade = str_c('What did the portfolio look like after the investment',
-		'decision in the current round?'),
+		' decision in the current round?'),
 	return_type_after_trade = str_c('If one sells a gain, then the return type',
-		'goes back to "None" after the decision. This is encoded in this variable.')
+		' goes back to "None" after the decision. This is encoded in this variable.')
 	)

@@ -3,18 +3,18 @@ library(patchwork)
 library(networkD3)
 
 theme_set(theme_minimal())
+master_list$plots <- list()
 
-# Belief updating in the second phase of Baseline paths:
-# TODO: (4) FIXME: This does not yet consider inverse updates!
-dat_main_task %>%
+# Belief updating in the second phase:
+master_list$plots$updating_p2 <- dat_main_task %>%
   mutate(return_pos_end_last_round = lag(return_type_after_trade)) %>%
-  filter(condition != 'Blocked Info',
+  filter(condition %in% c('Baseline', 'Blocked Trades'),
     round_label %in% c('p2', 'end_p2'),
     return_pos_end_last_round != 'None',
     favorable_move_since_last != 'None') %>%
   group_by(return_pos_end_last_round, favorable_move_since_last, condition) %>%
-  summarise(avg_update = mean(abs(belief_diff_since_last)),
-    se = sd(abs(belief_diff_since_last)) / sqrt(n()),
+  summarise(avg_update = mean(belief_updates_bayes_corrected),
+    se = sd(abs(belief_updates_bayes_corrected)) / sqrt(n()),
     n = n()) %>%
   ggplot(aes(return_pos_end_last_round, avg_update,
       fill = favorable_move_since_last)) +
@@ -23,7 +23,10 @@ dat_main_task %>%
       width = .2, position = position_dodge(.9)) +
     facet_grid(cols = vars(condition)) +
     scale_fill_brewer(palette = 'Paired') +
-    ylim(c(0, 15))
+    labs(x = 'Position and Condition',
+      y = 'Mean Bayes Corrected Update',
+      fill = 'Favorability')
+master_list$plots$updating_p2
 
 
 # Comparison between participants and Bayes diff_end_p1_end_p2
@@ -63,7 +66,7 @@ p1 <- dat_main_task %>%
     condition != 'Blocked Info') %>%
   ggplot(aes(i_round_in_path, price)) +
     geom_hline(yintercept = 1000, alpha = .5) +
-    geom_vline(xintercept = 4, color = 'red', alpha = .5) +
+    geom_vline(xintercept = 3, color = 'red', alpha = .5) +
     geom_vline(xintercept = 8, color = 'red', alpha = .5) +
     geom_line(position = position_dodge(.1), size = 1) +
     geom_point(aes(shape = hold_type_after_trade, color = condition),
@@ -82,7 +85,7 @@ p2 <- dat_main_task %>%
   mutate(belief = belief / 100) %>%
   ggplot(aes(i_round_in_path, belief, color = condition)) +
     geom_hline(yintercept = .5, alpha = .5) +
-    geom_vline(xintercept = 4, color = 'red', alpha = .5) +
+    geom_vline(xintercept = 3, color = 'red', alpha = .5) +
     geom_vline(xintercept = 8, color = 'red', alpha = .5) +
     geom_line(size = 1, show.legend = FALSE) +
     geom_point(aes(shape = return_type_after_trade),

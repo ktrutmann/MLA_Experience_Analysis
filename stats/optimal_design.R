@@ -33,7 +33,7 @@ names_to_join_by <- names(select(dat_4_rpp_lr1, -contains('learning_rate')))
 oed_data <- full_join(dat_4_rpp_lr1, dat_5_rpp_lr1, by = names(dat_4_rpp_lr1)) %>%
 	full_join(dat_3_5_rpp_lr1, by = names_to_join_by) %>%
 	full_join(dat_4_rpp_lr125, by = names_to_join_by) %>%
-	# full_join(dat_5_rpp_lr125, by = names_to_join_by) %>%
+	full_join(dat_5_rpp_lr125) %>%
 	full_join(dat_3_5_rpp_lr125, by = names_to_join_by) %>%
 	dplyr::select('participant.id_in_session', 'participant.label',
 		'rounds_per_phase', 'lr_multiplier', starts_with('Investment_Task.'),

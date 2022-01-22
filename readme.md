@@ -13,6 +13,11 @@ To run the analysis as a whole you can just source the `main.R` file.
 It will source all other files in the order in which they work together.
 All outputs that are used in the paper are saved to the `outputs` folder.
 
+## The "Master List"
+The object `master_list` is a list which will be saved and uploaded to
+overleaf. The manuscript in turn will then use the objects (tables,
+plots etc.) in this list to report on the analyses via Sweave (.Rtex).
+
 ## `optimal_degsign.R`
 The file `optimal_degsign.R` contains analyses to determine the optimal environment to maximize the impact of context sensitive belief updating.
 The variables that are optimized are the probability of a price increase during a up- or downward drift (`prob_up`) and the length of a phase (`n_rounds_per_phase`).

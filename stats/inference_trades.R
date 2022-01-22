@@ -1,5 +1,4 @@
 library(tidyverse)
-# library(lme4)
 # library(lmerTest)
 # library(sandwich)
 
@@ -8,8 +7,8 @@ library(tidyverse)
 # A function to retreive the last investment in the baseline as well as a
 # specified condition
 get_this_dat <- function(cond) {
-	filter(dat_main_long,
-		   i_round_in_path == rounds_per_phase * 2 + 1,
+	filter(dat_main_task,
+		   round_label == 'extra_round',
 		   condition %in% c('Baseline', cond)) %>%
 	droplevels() %>%
 	mutate(drift_direction = as.factor(ifelse(drift < .5, 'Down', 'Up')))
@@ -26,12 +25,19 @@ lmer(formula = hold ~ condition * drift_direction + (1 | participant),
 
 
 # Q: What about the blocked info treatment?
-lmer(formula = hold ~ drift_up * condition + (1 | participant),
+lmer(formula = hold ~ drift_direction * condition + (1 | participant),
 	 data = get_this_dat('Blocked Info')) %>%
 	 summary()
 
+# Q: What were the earnings per condition and how do they compare?
+this_dat <- dat_main_task %>%
+	filter(i_round_in_path == max(i_round_in_path)) %>%
+	select(condition, participant, distinct_path_id, payoff) %>%
+	pivot_wider(names_from = 'condition', values_from = 'payoff')
 
-# Q: What about the MLA effect at the end?
-lmer(formula = hold ~ drift_up * condition + (1 | participant),
-	 data = get_this_dat('MLA')) %>%
-	 summary()
+master_list$payoff_diff_bt <- lm((`Blocked Trades` - Baseline) ~ 1, data = this_dat) %>%
+	coeftest(vcov = vcovCL, cluster = ~participant)
+master_list$payoff_diff_di <- lm((`Delayed Info` - Baseline) ~ 1, data = this_dat) %>%
+	coeftest(vcov = vcovCL, cluster = ~participant)
+master_list$payoff_diff_bi <- lm((`Blocked Info` - Baseline) ~ 1, data = this_dat) %>%
+	coeftest(vcov = vcovCL, cluster = ~participant)

@@ -17,7 +17,8 @@ dat_all_wide <- read_delim(
   file.path(data_path, data_file_name_wide), delim = ';')
 
 # Constants
-rounds_per_phase <- 4  # Make sure this matches the python one!
+rounds_p1 <- 3  # Make sure this matches the python one!
+rounds_p2 <- 5  # Make sure this matches the python one!
 up_probs <- c(.65, .35) # The probs of an upward move in an up and down drift
 max_hold <- 4
 
@@ -29,13 +30,17 @@ n_participants <- n_distinct(dat_main_task$participant)
 dat_main_task <- mutate(dat_main_task,
   belief_diff_since_last = c(NA, diff(belief)),
 	round_label = case_when(
-		i_round_in_path < rounds_per_phase ~ 'p1',
-		i_round_in_path == rounds_per_phase ~ 'end_p1',
-		i_round_in_path == rounds_per_phase * 2 ~ 'end_p2',
-		i_round_in_path == rounds_per_phase * 2 + 1 ~ 'extra_round',
-		i_round_in_path > rounds_per_phase ~ 'p2'),
+		i_round_in_path < rounds_p1 ~ 'p1',
+		i_round_in_path == rounds_p1 ~ 'end_p1',
+		i_round_in_path == rounds_p1 + rounds_p2 ~ 'end_p2',
+		i_round_in_path == rounds_p1 + rounds_p2 + 1 ~ 'extra_round',
+		i_round_in_path > rounds_p1 ~ 'p2'),
 	price_up_since_last = if_else(i_round_in_path == 0, NA,
 		c(NA, diff(price) > 0)),
+  inverse_update = if_else(belief_diff_since_last == 0,
+    FALSE, price_up_since_last != (belief_diff_since_last > 0)),
+  belief_diff_since_last_flipped = if_else(price_up_since_last,
+    belief_diff_since_last, -belief_diff_since_last),
   hold_type = case_when(
     hold > 0 ~ 'Holding',
     hold < 0 ~ 'Shorting',
@@ -117,13 +122,30 @@ for (i in seq_len(nrow(dat_main_task))) {
     up_probs[1] + (1 - dat_main_task$rational_belief_state[i]) * up_probs[2]
 }
 
-
-# TODO: (2) This needs to take account of the blocked trading
 dat_main_task <- mutate(dat_main_task,
-	rational_hold = case_when(
+  rational_belief = ifelse((!condition %in% c('Baseline', 'Blocked Trades') &
+    round_label == 'p2') | round_label == 'extra_round',
+    NA, rational_belief * 100),
+  rational_belief_state = rational_belief_state * 100,
+	rational_hold_after_trade = case_when(
 		dat_main_task$rational_belief > .5 ~ max_hold,
 		dat_main_task$rational_belief < .5 ~ -max_hold,
 		TRUE ~ 0))
+
+# Rational hods should alos not change if trading is blocked:
+for (i in seq_len(nrow(dat_main_task))) {
+  if (dat_main_task$condition[i] == 'Baseline') next
+  if (dat_main_task$round_label[i] == 'end_p1') {
+    curr_hold <- dat_main_task$rational_hold_after_trade[i]
+  } else if (dat_main_task$round_label[i] == 'p2') {
+    dat_main_task$rational_hold_after_trade[i] <- curr_hold
+  }
+}
+
+# Correct belief updates by the rational updates:
+dat_main_task <- mutate(dat_main_task,
+  belief_updates_bayes_corrected = belief_diff_since_last_flipped -
+    abs(c(NA, diff(rational_belief))))
 
 
 # DE Measure --------------------------------------------------------------
@@ -174,7 +196,7 @@ for (subj in dat_all_wide$participant) {
                               this_dat$returns > 0)
 
     # Filter it further down to get the WC style DE measure only counting the last decision:
-    this_dat <- filter(this_dat, i_round_in_path == rounds_per_phase * 2)
+    this_dat <- filter(this_dat, i_round_in_path == rounds_p1 + rounds_p2)
 
     de_table[de_table$participant == subj & de_table$block == i_path,
       'gain_last_period'] <- this_dat$returns > 0
