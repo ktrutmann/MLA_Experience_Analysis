@@ -104,12 +104,10 @@ dat_main_task <- dat_main_task %>%
 # Rational actor:
 dat_main_task$rational_belief <- 999
 dat_main_task$rational_belief_state <- 999
-dat_main_task$rational_hold <- 999
 for (i in seq_len(nrow(dat_main_task))) {
 	if (dat_main_task$i_round_in_path[i] == 0) {
 		dat_main_task$rational_belief[i] <- .5
 		dat_main_task$rational_belief_state[i] <- .5
-		dat_main_task$rational_hold[i] <- 0
 		next
 	}
 
@@ -150,21 +148,21 @@ dat_main_task <- mutate(dat_main_task,
 
 # DE Measure --------------------------------------------------------------
 # This tibble contains one row per price path
-# TODO: (2) Define whether we are talking about #shares sold or just #sale periods for the DE
-# -> Odean counts the #shares sold!
+# Note: We calculate the DE by countint the number of shares (Similar to Odean).
+# Sales can not go over the zero line (i.e. can be maximally abs(hold)).
 de_table <- tibble(
   participant = rep(unique(dat_main_task$participant), each = n_blocks),
   block = rep(seq_len(n_blocks), n_participants),
   condition = dat_main_task$condition[dat_main_task$i_round_in_path == 0],
-  n_losses = vector(mode = 'numeric', length = n_blocks * n_participants),
+  n_loss_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
   loss_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
-  n_gains = vector(mode = 'numeric', length = n_blocks * n_participants),
+  n_gain_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
   gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
-  n_sales = vector(mode = 'numeric', length = n_blocks * n_participants),
+  n_sold_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
   sale_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
-  n_sold_losses = vector(mode = 'numeric', length = n_blocks * n_participants),
+  n_sold_loss_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
   sold_loss_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
-  n_sold_gains = vector(mode = 'numeric', length = n_blocks * n_participants),
+  n_sold_gain_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
   sold_gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants)
   )
 
@@ -175,58 +173,47 @@ for (subj in dat_all_wide$participant) {
     this_dat <- filter(dat_main_task,
       participant == subj, global_path_id == i_path, investable)
 
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'n_gains'] <- sum(this_dat$returns > 0)
+    path_selector <- de_table$participant == subj & de_table$block == i_path
+    sale_flag <- this_dat$hold > 0 & this_dat$transaction < 0 |
+          this_dat$hold < 0 & this_dat$transaction > 0
 
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'n_losses'] <- sum(this_dat$returns < 0)
-
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'n_sales'] <- sum(this_dat$hold > 0 & this_dat$transaction < 0 |
-                        this_dat$hold < 0 & this_dat$transaction > 0)
-
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'n_sold_losses'] <- sum((this_dat$hold > 0 & this_dat$transaction < 0 |
-                              this_dat$hold < 0 & this_dat$transaction > 0) &
-                              this_dat$returns < 0)
-
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'n_sold_gains'] <- sum((this_dat$hold > 0 & this_dat$transaction < 0 |
-                              this_dat$hold < 0 & this_dat$transaction > 0) &
-                              this_dat$returns > 0)
+    de_table[path_selector, 'n_gain_shares'] <- sum(abs(this_dat$hold[this_dat$returns > 0]))
+    de_table[path_selector, 'n_loss_shares'] <- sum(abs(this_dat$hold[this_dat$returns < 0]))
+    de_table[path_selector, 'n_sold_shares'] <- sum(pmin(abs(this_dat$hold[sale_flag]),
+        abs(this_dat$transaction[sale_flag])))
+    de_table[path_selector, 'n_sold_loss_shares'] <- sum(pmin(abs(this_dat$hold[
+      sale_flag & this_dat$returns < 0]), abs(this_dat$transaction[
+      sale_flag & this_dat$returns < 0])))
+    de_table[path_selector, 'n_sold_gain_shares'] <- sum(pmin(abs(this_dat$hold[
+      sale_flag & this_dat$returns > 0]), abs(this_dat$transaction[
+      sale_flag & this_dat$returns > 0])))
 
     # Filter it further down to get the WC style DE measure only counting the last decision:
-    this_dat <- filter(this_dat, i_round_in_path == rounds_p1 + rounds_p2)
+    this_dat <- filter(this_dat, round_label == 'end_p2')
+    sale_flag <- this_dat$hold > 0 & this_dat$transaction < 0 |
+                        this_dat$hold < 0 & this_dat$transaction > 0
 
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'gain_last_period'] <- this_dat$returns > 0
+    de_table[path_selector, 'gain_last_period'] <- (this_dat$returns > 0) * abs(this_dat$hold)
+    de_table[path_selector, 'loss_last_period'] <- (this_dat$returns < 0) * abs(this_dat$hold)
+    de_table[path_selector, 'sales_last_period'] <- min(abs(this_dat$hold),
+      abs(this_dat$transaction))
 
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'loss_last_period'] <- this_dat$returns < 0
+    de_table[path_selector, 'sold_loss_last_period'] <- de_table[path_selector,
+    'sales_last_period'] * (this_dat$returns < 0)
 
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'sales_last_period'] <- (this_dat$hold > 0 & this_dat$transaction < 0 |
-                        this_dat$hold < 0 & this_dat$transaction > 0)
-
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'sold_loss_last_period'] <- ((this_dat$hold > 0 & this_dat$transaction < 0 |
-                              this_dat$hold < 0 & this_dat$transaction > 0) &
-                              this_dat$returns < 0)
-
-    de_table[de_table$participant == subj & de_table$block == i_path,
-      'sold_gain_last_period'] <- ((this_dat$hold > 0 & this_dat$transaction < 0 |
-                              this_dat$hold < 0 & this_dat$transaction > 0) &
-                              this_dat$returns > 0)
+    de_table[path_selector, 'sold_gain_last_period'] <- de_table[path_selector,
+    'sales_last_period'] * (this_dat$returns > 0)
   }
 }
 
 de_table <- de_table %>%
   group_by(participant) %>%
+  select(-block) %>%
   summarise_at(vars(-condition), sum, na.rm = TRUE)
 
 # Calculate all the different DE measures
-  de_table$plr <- de_table$n_sold_losses / de_table$n_losses
-  de_table$pgr <- de_table$n_sold_gains / de_table$n_gains
+  de_table$plr <- de_table$n_sold_loss_shares / de_table$n_loss_shares
+  de_table$pgr <- de_table$n_sold_gain_shares / de_table$n_gain_shares
   de_table$de  <- de_table$pgr - de_table$plr
 
   de_table$plr_last_period <-
@@ -236,8 +223,7 @@ de_table <- de_table %>%
   de_table$de_last_period  <-
     de_table$pgr_last_period - de_table$plr_last_period
 
-dat_all_wide <- left_join(dat_all_wide,
-  select(de_table, - block), by = 'participant')
+dat_all_wide <- left_join(dat_all_wide, de_table, by = 'participant')
 
 
 # Saving the updated dataframe --------------------------------------------

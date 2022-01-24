@@ -1,6 +1,6 @@
 library(tidyverse)
-# library(lmerTest)
-# library(sandwich)
+library(lmerTest)
+library(sandwich)
 
 # TODO: (1) Try out car::contr.Sum(levels=derp). Tweet tip by Jana!
 
@@ -41,3 +41,16 @@ master_list$payoff_diff_di <- lm((`Delayed Info` - Baseline) ~ 1, data = this_da
 	coeftest(vcov = vcovCL, cluster = ~participant)
 master_list$payoff_diff_bi <- lm((`Blocked Info` - Baseline) ~ 1, data = this_dat) %>%
 	coeftest(vcov = vcovCL, cluster = ~participant)
+
+
+# Q: How do the conditions influence the "investment error" at end_p2?
+this_model <- dat_main_task %>%
+  mutate(hold_error = abs(rational_hold_after_trade - hold_after_trade)) %>%
+  filter(round_label == 'end_p2') %>%
+  {lm(hold_error ~ condition, data = .)} #nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4]
+master_list$cond_on_hold_err_end_p2 <- this_model
