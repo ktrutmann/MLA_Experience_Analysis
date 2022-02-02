@@ -15,13 +15,14 @@ expected_effect <- sample_sd * .2 # Small coens d
 # Notes:
 # sd drift hit rates: 2.93
 
-sample_sizes <- c(seq(240, 340, 20))
+sample_sizes <- c(seq(240, 320, 20))
 conditions <- c('Baseline', 'Condition_A', 'Condition_B')
-n_repetitions <- 5000
+n_repetitions <- 10000
 alpha_level <- .1 # .1 for one-sided test!
 
 
 # Simulation ------------------------------------------------
+set.seed(12345)
 results <- array(dim = c(
 	length(conditions),
 	length(sample_sizes),
