@@ -1,6 +1,5 @@
 require(tidyverse)
-library(ggplot2)
-source("helper_functions.R")
+library(patchwork)
 
 
 # Setup and load data ----------------------------------------------------
@@ -12,6 +11,7 @@ data_file_name_wide <- 'dat_all_wide.csv'
 dat_main_long <- read_delim(file.path(data_path, data_file_name_long), delim = ';')
 dat_all_wide <- read_delim(file.path(data_path, data_file_name_wide), delim = ';')
 
+theme_set(theme_minimal())
 
 # DE Numbers ----------------------------------------------------
 
@@ -53,3 +53,42 @@ for (this_subj in unique(dat_main_long$participant)) {
 	save_kevplot(file.path('..', 'figures', 'per_subject_plots',
 		str_c('Lines_subj_', this_subj)))
 }
+
+# Beliefs at end_p2 per condition ---------------------------------------------
+
+# Did the interventions have the expected effect in each of the combinations of
+# holding/shorting and gain/loss?
+these_filters <- c('Holding Gain', 'Shorting Gain', 'Holding Loss', 'Shorting Loss')
+make_plot <- function(dat, this_filter) {
+  this_dat <- dat_main_task %>%
+    filter(majority_updates_p2 == this_filter,
+      round_label == 'end_p2',
+  	  condition != 'Blocked Info') %>%
+    mutate(condition = factor(condition, levels = c(
+      'Baseline', 'Blocked Trades', 'Delayed Info')))
+
+  this_model <- lm(belief ~ condition, data = this_dat) %>%
+    coeftest(vcov = vcovCL, cluster = ~participant)
+
+  this_dat <- this_dat %>%
+    group_by(condition) %>%
+    summarise(avg_belief = mean(belief),
+      n = n()) %>%
+    add_column(std_err = this_model[, 'Std. Error']) %>%
+    mutate(low_95ci = avg_belief - qt(.975, df = n - 1) * std_err,
+      high_95ci = avg_belief + qt(.975, df = n - 1) * std_err)
+
+  ggplot(this_dat, aes(x = condition, y = avg_belief)) +
+    geom_point() +
+    geom_line(group = 1) +
+    geom_errorbar(aes(ymin = low_95ci, ymax = high_95ci),
+      width = .1) +
+    labs(x = 'Condition', y = 'Average Belief at end of Phase Two',
+      title = str_c('Majority Updates from ', this_filter)) +
+    geom_hline(yintercept = 50, alpha = .5) +
+    ylim(10, 90)
+}
+plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
+# Generating the plots via patchwork:
+(plotlist[[1]] | plotlist[[2]]) /
+(plotlist[[3]] | plotlist[[4]])

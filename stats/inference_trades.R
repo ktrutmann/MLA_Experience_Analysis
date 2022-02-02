@@ -51,7 +51,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_on_hold_err_end_p2 <- this_model
 
 
@@ -62,7 +62,7 @@ this_model <- de_table %>%
 this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$de_per_cond <- this_model
 
 
@@ -77,7 +77,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_on_final_hit_rate <- this_model
 
 
@@ -93,7 +93,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_on_final_drift_hit_rate <- this_model
 
 
@@ -107,5 +107,5 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$mla_inv_by_cond <- this_model
