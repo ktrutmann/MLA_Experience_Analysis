@@ -81,6 +81,22 @@ this_model$p_val_clust <- this_model_clust[, 4]
 master_list$cond_on_final_hit_rate <- this_model
 
 
+# Drift-Hit rate of the final decision by condition:
+# I.e. how often did they invest according to the drift?
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round') %>%
+	mutate(hit_rate_final_round = if_else(drift > .5,
+		hold, -hold)) %>%
+	{lm(hit_rate_final_round ~ condition, data = .)}
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4]
+master_list$cond_on_final_drift_hit_rate <- this_model
+
+
 # Check for Myopic loss aversion (MLA)
 this_model <- dat_main_task %>%
 	filter(round_label == 'end_p1') %>%
