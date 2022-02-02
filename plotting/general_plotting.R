@@ -2,6 +2,8 @@ library(tidyverse)
 library(patchwork)
 library(networkD3)
 
+# TODO: (3) This stuff is all over the place. Sort it into the correct files!
+
 theme_set(theme_minimal())
 master_list$plots <- list()
 
