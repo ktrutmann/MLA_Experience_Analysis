@@ -21,3 +21,11 @@ dat_main_task  %>%
   print(n = 30)
 
 # TODO: (5) Check on participant 25syxa48 in the pilot -> 0 wrong updates!
+
+# Save participant comments:
+master_list$comments <- na.omit(dat_all_wide$participant_comments)
+master_list$purpose <- na.omit(dat_all_wide$purpose)
+master_list$strat <- na.omit(dat_all_wide$strategy)
+master_list$saw_pattern <- na.omit(dat_all_wide$recognised_pattern)
+
+# TODO: (1) Create and report some sanity checks (e.g. are they shorted in down drifts?)

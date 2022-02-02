@@ -145,6 +145,7 @@ dat_main_task <- mutate(dat_main_task,
   belief_updates_bayes_corrected = belief_diff_since_last_flipped -
     abs(c(NA, diff(rational_belief))))
 
+# TODO: (1) Check how to calculate Blocked Info Bayesian Belief!
 
 # DE Measure --------------------------------------------------------------
 # This tibble contains one row per price path
@@ -207,9 +208,9 @@ for (subj in dat_all_wide$participant) {
 }
 
 de_table <- de_table %>%
-  group_by(participant) %>%
+  group_by(participant, condition) %>%
   select(-block) %>%
-  summarise_at(vars(-condition), sum, na.rm = TRUE)
+  summarise_at(vars(everything()), sum, na.rm = TRUE)
 
 # Calculate all the different DE measures
   de_table$plr <- de_table$n_sold_loss_shares / de_table$n_loss_shares
@@ -223,8 +224,12 @@ de_table <- de_table %>%
   de_table$de_last_period  <-
     de_table$pgr_last_period - de_table$plr_last_period
 
-dat_all_wide <- left_join(dat_all_wide, de_table, by = 'participant')
-
 
 # Saving the updated dataframe --------------------------------------------
+write_delim(dat_main_task, file.path(data_path, data_file_name_long), delim = ';')
 write_delim(dat_all_wide, file.path(data_path, data_file_name_wide), delim = ';')
+write_delim(de_table, file.path(data_path, 'de_table.csv'), delim = ';')
+
+# dat_main_task <- read_delim(file.path(data_path, data_file_name_long), delim = ';')
+# dat_all_wide <- read_delim(file.path(data_path, data_file_name_wide), delim = ';')
+# de_table <- read_delim(file.path(data_path, 'de_table.csv'), delim = ';')

@@ -25,7 +25,7 @@ dat_main_task <- dplyr::select(dat,
 # Beautify variable coding and remove non-informatives:
 dat_main_task <- mutate(dat_main_task,
 	investable = as.logical(investable),
-	condition_name = factor(condition_name, # TODO: (6) Double check these!
+	condition_name = factor(condition_name,
 	    levels = c('full_control', 'blocked_full_info', 'blocked_delayed_info',
 	   		'blocked_blocked_info'),
 	    labels = c('Baseline', 'Blocked Trades', 'Delayed Info', 'Blocked Info'))) %>%
@@ -60,7 +60,8 @@ dat_all_wide <- dat %>%
 		attention_check = 'Demographics.1.player.attention_check',
 		engagement = 'Demographics.1.player.engagement',
 		recognised_pattern =  'Demographics.1.player.pattern',
-		participant_comments = 'Demographics.1.player.general_comments'))
+		participant_comments = 'Demographics.1.player.general_comments',
+		dont_use_data = 'Demographics.1.player.dont_use_data'))
 
 # For calculating payoffs:
 	# Note: Make sure to exclude the ones who are already payed!
@@ -69,6 +70,9 @@ dat_all_wide <- dat %>%
 	# 		prolific_id = Tutorial_Investment_Task.1.player.prolific_id,
 	# 		payoff = round(participant.payoff * .015, 2)
 	# 	) %>% print(n = 40)
+
+# Excluding participants -----------------------------------
+	# TODO: (9) Write code to add an exclusion flag and filter for it here!
 
 # Saving  --------------------------------------------------
 master_list$dat <- dat_all_wide

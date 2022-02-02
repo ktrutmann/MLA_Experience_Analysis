@@ -22,7 +22,7 @@ master_list$plots$updating_p2 <- dat_main_task %>%
     geom_errorbar(aes(ymin = avg_update - se, ymax = avg_update + se),
       width = .2, position = position_dodge(.9)) +
     facet_grid(cols = vars(condition)) +
-    scale_fill_brewer(palette = 'Paired') +
+    scale_fill_manual(values = c('#A5D7D2', '#6AB0AA')) +
     labs(x = 'Position and Condition',
       y = 'Mean Bayes Corrected Update',
       fill = 'Favorability')
