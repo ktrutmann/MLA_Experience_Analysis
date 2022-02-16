@@ -1,16 +1,6 @@
 require(tidyverse)
 library(ggplot2)
-source("helper_functions.R")
-
-
-# Setup and load data ----------------------------------------------------
-# TODO: Put all this in a seperate setup file that is sourced in each other .R file.
-data_path <- '..//..//data//processed'
-data_file_name_long <- 'all_participants_long_task_data.csv'
-data_file_name_wide <- 'dat_all_wide.csv'
-
-dat_main_long <- read_delim(file.path(data_path, data_file_name_long), delim = ';')
-dat_all_wide <- read_delim(file.path(data_path, data_file_name_wide), delim = ';')
+source(file.path('plotting', '0_plotting_setup.R'))
 
 
 # Holding at T2 by Condition ---------------------------------------------
@@ -29,13 +19,37 @@ ggplot(filter(dat_main_long, i_round_in_path == rounds_per_phase * 2 + 1),
 # Beliefs at T2 by Condition ---------------------------------------------
 ggplot(filter(dat_main_long, i_round_in_path == rounds_per_phase * 2),
   aes(x = ifelse(drift > .5, 'Drift Up', 'Drift Down'), y = belief)) +
-    facet_grid(cols = vars(condition)) + 
+    facet_grid(cols = vars(condition)) +
     geom_jitter(width = .2, height = .1, alpha = .5) +
     geom_boxplot(aes(fill = condition), alpha = .75) +
     stat_summary(fun.y = mean, geom = 'point', shape = 23,
       size = 5, fill = '#dd0000', color = '#dd0000') +
     theme_minimal() +
     theme(legend.position = 'none')
+
+
+# Belief updating in the second phase:
+master_list$plots$updating_p2 <- dat_main_task %>%
+  mutate(return_pos_end_last_round = lag(return_type_after_trade)) %>%
+  filter(condition %in% c('Baseline', 'Blocked Trades'),
+    round_label %in% c('p2', 'end_p2'),
+    return_pos_end_last_round != 'None',
+    favorable_move_since_last != 'None') %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected),
+    se = sd(abs(belief_updates_bayes_corrected)) / sqrt(n()),
+    n = n()) %>%
+  ggplot(aes(return_pos_end_last_round, avg_update,
+      fill = favorable_move_since_last)) +
+    geom_col(position = 'dodge') +
+    geom_errorbar(aes(ymin = avg_update - se, ymax = avg_update + se),
+      width = .2, position = position_dodge(.9)) +
+    facet_grid(cols = vars(condition)) +
+    scale_fill_manual(values = c('#A5D7D2', '#6AB0AA')) +
+    labs(x = 'Position and Condition',
+      y = 'Mean Bayes Corrected Update',
+      fill = 'Favorability')
+master_list$plots$updating_p2
 
 
 # DE Numbers ----------------------------------------------------

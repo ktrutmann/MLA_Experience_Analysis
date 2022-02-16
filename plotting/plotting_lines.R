@@ -1,17 +1,7 @@
 require(tidyverse)
 library(patchwork)
+source(file.path('plotting', '0_plotting_setup.R'))
 
-
-# Setup and load data ----------------------------------------------------
-# TODO: Put all this in a seperate setup file that is sourced in each other .R file.
-data_path <- file.path('..', '..', 'data', 'processed')
-data_file_name_long <- 'all_participants_long_task_data.csv'
-data_file_name_wide <- 'dat_all_wide.csv'
-
-dat_main_long <- read_delim(file.path(data_path, data_file_name_long), delim = ';')
-dat_all_wide <- read_delim(file.path(data_path, data_file_name_wide), delim = ';')
-
-theme_set(theme_minimal())
 
 # DE Numbers ----------------------------------------------------
 
@@ -30,29 +20,69 @@ ggplot(line_df,
 
 
 # Individual price paths ----------------------------------------------------
-for (this_subj in unique(dat_main_long$participant)) {
-	dat_main_long  %>%
+for (this_subj in unique(dat_main_task$participant)) {
+	dat_main_task %>%
 		filter(participant == this_subj) %>%
-		ggplot(aes(x = i_round_in_path + 1, y = price, group = global_path_id,
-				color = condition)) +
+		ggplot(aes(x = i_round_in_path + 1, y = price, group = global_path_id)) +
 			facet_grid(rows = vars(as.factor(distinct_path_id + 1))) +
-			geom_hline(aes(yintercept = dat_main_long$price[1]),
-					   color = 'grey', size = .5, linetype = 'dotted') +
+			geom_hline(aes(yintercept = dat_main_task$price[1]),
+					   color = 'darkgrey', size = .75, linetype = 'dotted') +
 			geom_line(size = 1, alpha = .5) +
-			geom_vline(aes(xintercept = 5), size = 1,
+			geom_vline(aes(xintercept = 4), size = 1,
 				alpha = .75, linetype = 'dashed') +
 			geom_vline(aes(xintercept = 9), size = 1,
 				alpha = .75, linetype = 'dashed') +
 			scale_color_manual(values = c('darkgreen', 'darkred', 'black', 'cyan3'),
 				labels = c('Blocked\nInfo\n', 'Blocked\nTrade\n',
 						   'Full\nControl\n', 'MLA')) +
-			labs(title = str_c('Participant ', this_subj), x = 'Round', y = 'Price',
-				 color = 'Condition') +
+			labs(title = str_c('Participant ', this_subj), x = 'Round', y = 'Price') +
 			theme_minimal()
 
-	save_kevplot(file.path('..', 'figures', 'per_subject_plots',
-		str_c('Lines_subj_', this_subj)))
+	ggsave(file.path('output', 'figures', 'per_subject_plots',
+		str_c('Lines_subj_', this_subj, '.pdf')), dev = 'pdf')
 }
+
+# TODO: (3) Fix these plots. Something doesn't work anymore
+# Individual Plots of price and belief:
+p1 <- dat_main_task %>%
+  filter(participant == unique(participant)[5],
+    distinct_path_id == i,
+    condition != 'Blocked Info') %>%
+  ggplot(aes(i_round_in_path, price)) +
+    geom_hline(yintercept = 1000, alpha = .5) +
+    geom_vline(xintercept = 3, color = 'red', alpha = .5) +
+    geom_vline(xintercept = 8, color = 'red', alpha = .5) +
+    geom_line(position = position_dodge(.1), size = 1) +
+    geom_point(aes(shape = hold_type_after_trade, color = condition),
+      size = 5, position = position_dodge(.1)) +
+    scale_color_brewer(palette = 'Paired') +
+    scale_x_continuous(breaks = c(0, 4, 8)) +
+    scale_shape_manual(values = c(2, 1, 6)) +
+    theme(axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.x = element_blank())
+
+p2 <- dat_main_task %>%
+  filter(participant == unique(participant)[5],
+    distinct_path_id == i,
+    condition != 'Blocked Info') %>%
+  mutate(belief = belief / 100) %>%
+  ggplot(aes(i_round_in_path, belief, color = condition)) +
+    geom_hline(yintercept = .5, alpha = .5) +
+    geom_vline(xintercept = 3, color = 'red', alpha = .5) +
+    geom_vline(xintercept = 8, color = 'red', alpha = .5) +
+    geom_line(size = 1, show.legend = FALSE) +
+    geom_point(aes(shape = return_type_after_trade),
+      size = 5, position = position_dodge(.1)) +
+    scale_color_brewer(palette = 'Paired') +
+    scale_x_continuous(breaks = c(0, 4, 8)) +
+    scale_shape_manual(values = c(2, 6, 1)) +
+    ylim(c(0, 1))
+
+p1 +
+p2 +
+plot_layout(ncol = 1)
+
 
 # Beliefs at end_p2 per condition ---------------------------------------------
 
@@ -92,3 +122,39 @@ plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
 # Generating the plots via patchwork:
 (plotlist[[1]] | plotlist[[2]]) /
 (plotlist[[3]] | plotlist[[4]])
+
+
+# How does the condition influence the belief in a down/up drift at end_p2?
+dat_main_task %>%
+	filter(round_label == 'end_p2') %>%
+	mutate(drift = as.factor(drift)) %>%
+	ggplot(
+		aes(x = condition, y = belief, color = drift)) +
+		stat_summary(
+			fun.data = "mean_se", fun.args = list(mult = 1.96),
+			position = position_dodge(width = .02)) +
+		geom_line(aes(group = drift), stat = 'summary', fun = 'mean') +
+		geom_hline(yintercept = 50, alpha = .75) +
+		labs(x = 'Condition', y = 'Average Belief at end_p2',
+			color = 'Drift')
+
+
+# How does the condition influence the change in belief between
+#	beginning and end of p2?
+dat_main_task %>%
+	filter(round_label %in% c('end_p1', 'end_p2')) %>%
+		pivot_wider(id_cols = c('participant', 'distinct_path_id', 'condition',
+			'drift'), values_from = 'belief', names_from = 'round_label',
+			names_prefix = 'belief_') %>%
+	mutate(drift = as.factor(drift),
+		belief_diff = belief_end_p2 - belief_end_p1) %>%
+	ggplot(
+		aes(x = condition, y = belief_diff, color = drift)) +
+		stat_summary(
+			fun.data = "mean_se", fun.args = list(mult = 1.96),
+			position = position_dodge(width = .02)) +
+		geom_line(aes(group = drift), stat = 'summary', fun = 'mean') +
+		geom_hline(yintercept = 0, alpha = .75) +
+		labs(x = 'Condition',
+			y = 'Average belief difference between end_p1 and end_p2',
+			color = 'Drift')

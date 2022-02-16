@@ -145,7 +145,6 @@ dat_main_task <- mutate(dat_main_task,
   belief_updates_bayes_corrected = belief_diff_since_last_flipped -
     abs(c(NA, diff(rational_belief))))
 
-# TODO: (1) Check how to calculate Blocked Info Bayesian Belief!
 
 # DE Measure --------------------------------------------------------------
 # This tibble contains one row per price path

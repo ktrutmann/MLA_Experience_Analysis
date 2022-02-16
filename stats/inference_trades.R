@@ -1,7 +1,8 @@
 library(tidyverse)
-library(lmtest)
 library(sandwich)
+library(lmtest)
 
+if (!'master_list' %in% ls()) master_list$desc <- list()
 
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
@@ -47,7 +48,7 @@ this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
 	mutate(hit_rate_final_round = if_else(price_up_since_last,
 		hold, -hold)) %>%
-	{lm(hit_rate_final_round ~ condition, data = .)}
+	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
@@ -63,7 +64,7 @@ this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
 	mutate(hit_rate_final_round = if_else(drift > .5,
 		hold, -hold)) %>%
-	{lm(hit_rate_final_round ~ condition, data = .)}
+	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
@@ -77,7 +78,7 @@ master_list$cond_on_final_drift_hit_rate <- this_model
 this_model <- dat_main_task %>%
 	filter(round_label == 'end_p1') %>%
 	mutate(abs_hold_after_trade = abs(hold_after_trade)) %>%
-	{lm(abs_hold_after_trade ~ condition, data = .)}
+	{lm(abs_hold_after_trade ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)

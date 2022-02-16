@@ -2,8 +2,7 @@ library(tidyverse)
 library(sandwich)
 library(lmtest)
 
-# TODO: (3) Also check updating between end p1 and end p2 for each condition!
-
+if (!'master_list' %in% ls()) master_list$desc <- list()
 
 # Q: How do the conditions influence the "belief error" at end_p2?
 this_model <- dat_main_task %>%
