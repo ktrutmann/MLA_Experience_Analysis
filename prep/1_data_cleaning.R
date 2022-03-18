@@ -3,13 +3,14 @@ library(tidyverse)
 master_list <- list() # See Readme
 
 # Setup and load data
-raw_file_path <- file.path('..', 'data', 'raw', 'prolific_pilot',
-	'all_apps_wide-2022-01-19.csv')
+raw_file_path <- file.path('..', 'data', 'raw',
+	'full_data_exp.csv')
 processed_data_path <- file.path('..', 'data', 'processed')
 
 dat <- read_csv(raw_file_path) %>%
 	filter(participant._current_page_name == 'payoff_page')
 
+# TODO: (4) Fix the "children in household" bug in the first session manually!
 
 # Filtering task data and reshaping
 dat_main_task <- dplyr::select(dat,
@@ -36,6 +37,7 @@ dat_main_task <- mutate(dat_main_task,
 
 
 # Creating the wide table --------------------------------------------------
+# TODO: (3) Add the new IM and Demographics questions
 dat_all_wide <- dat %>%
 	dplyr::select(c(
 		participant = 'participant.code',
@@ -52,8 +54,6 @@ dat_all_wide <- dat %>%
 		strategy_anti_DE = 'Strategy.1.player.strategy_anti_DE',
 		age = 'Demographics.1.player.age',
 		gender = 'Demographics.1.player.gender',
-		is_student = 'Demographics.1.player.is_student',
-		study_field = 'Demographics.1.player.study_field',
 		investment_experience = 'Demographics.1.player.investment_experience',
 		purpose = 'Demographics.1.player.purpose',
 		attentiveness = 'Demographics.1.player.attentiveness',
@@ -61,18 +61,22 @@ dat_all_wide <- dat %>%
 		engagement = 'Demographics.1.player.engagement',
 		recognised_pattern =  'Demographics.1.player.pattern',
 		participant_comments = 'Demographics.1.player.general_comments',
-		dont_use_data = 'Demographics.1.player.dont_use_data'))
+		dont_use_data = 'Demographics.1.player.dont_use_data',
+		dont_use_data_rason = 'Demographics.1.player.dont_use_data_reason'))
 
-# For calculating payoffs:
-	# Note: Make sure to exclude the ones who are already payed!
-	# dat %>%
-	# 	transmute(
-	# 		prolific_id = Tutorial_Investment_Task.1.player.prolific_id,
-	# 		payoff = round(participant.payoff * .015, 2)
-	# 	) %>% print(n = 40)
 
 # Excluding participants -----------------------------------
-	# TODO: (9) Write code to add an exclusion flag and filter for it here!
+dat_all_wide <- mutate(dat_all_wide,
+	excluded_reason = '',
+	excluded_reason = if_else(attention_check != 1, 'attention_check/', ''),
+	excluded_reason = if_else(attentiveness < 2,
+		str_c(excluded_reason, 'attentiveness_question/'), excluded_reason),
+	excluded_reason = if_else(dont_use_data == 1,
+		str_c(excluded_reason, 'participant_reason'), excluded_reason))
+
+dat_all_wide <- filter(dat_all_wide, excluded_reason == '')
+dat_main_task <- filter(dat_main_task, participant %in% dat_all_wide$participant)
+
 
 # Saving  --------------------------------------------------
 master_list$dat <- dat_all_wide

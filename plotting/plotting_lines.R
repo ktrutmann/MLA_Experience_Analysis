@@ -1,8 +1,3 @@
-require(tidyverse)
-library(patchwork)
-source(file.path('plotting', '0_plotting_setup.R'))
-
-
 # DE Numbers ----------------------------------------------------
 
 line_df <- dat_all_wide %>%

@@ -1,9 +1,3 @@
-library(tidyverse)
-library(patchwork)
-library(networkD3)
-source(file.path('plotting', '0_plotting_setup.R'))
-
-
 # Movement of the majority_updated_in_p2 as Sankey plot:
 plot_prep <- dat_main_task %>%
   filter(i_round_in_path == 0, condition != 'Blocked Info') %>%

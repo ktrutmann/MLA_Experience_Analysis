@@ -1,9 +1,3 @@
-library(tidyverse)
-library(sandwich)
-library(lmtest)
-
-if (!'master_list' %in% ls()) master_list$desc <- list()
-
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
 	filter(i_round_in_path == max(i_round_in_path)) %>%
@@ -64,6 +58,25 @@ this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
 	mutate(hit_rate_final_round = if_else(drift > .5,
 		hold, -hold)) %>%
+	group_by(drift, condition) %>%
+	summarize(avg = mean(hold))
+	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$cond_on_final_drift_hit_rate <- this_model
+
+
+# Drift-Hit rate of the final decision by condition:
+# I.e. how often did they invest according to the drift?
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round',
+		hold != 0) %>%
+	mutate(hit_rate_final_round = if_else((drift > .5) == (hold > 0),
+		1, 0)) %>%
 	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,

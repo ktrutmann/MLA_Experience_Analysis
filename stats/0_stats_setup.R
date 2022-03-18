@@ -1,6 +1,6 @@
 library(tidyverse)
-library(patchwork)
-library(networkD3)
+library(sandwich)
+library(lmtest)
 
 data_path <- file.path('..', 'data', 'processed')
 
@@ -10,9 +10,6 @@ dat_all_wide <- read_delim(
   file.path(data_path, 'dat_all_wide.csv'), delim = ';')
 de_table <- read_delim(
   file.path(data_path, 'de_table.csv'), delim = ';')
- 
-theme_set(theme_minimal())
 
-# Set up the master list:
-if (!'master_list' %in% ls()) master_list <- list()
-if (!'plots' %in% names(master_list)) master_list$plots <- list()
+master_list <- list()
+master_list$desc <- list()

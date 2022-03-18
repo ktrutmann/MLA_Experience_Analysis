@@ -8,8 +8,8 @@ require(tidyverse)
 data_path <- file.path('..', 'data', 'processed')
 data_file_name_long <- 'main_task_data.csv'
 data_file_name_wide <- 'dat_all_wide.csv'
-data_file_time <- file.path('..', '..', 'data', 'raw', 'testing',
-  'TimeSpent (accessed 2020-05-03).csv')
+data_file_time <- file.path('..', '..', 'data', 'raw',
+  'PageTimes-2022-03-17.csv')
 
 dat_main_task <- read_delim(
   file.path(data_path, data_file_name_long), delim = ';')
@@ -104,6 +104,7 @@ dat_main_task <- dat_main_task %>%
 # Rational actor:
 dat_main_task$rational_belief <- 999
 dat_main_task$rational_belief_state <- 999
+cat('Calculating rational trades\n')
 for (i in seq_len(nrow(dat_main_task))) {
 	if (dat_main_task$i_round_in_path[i] == 0) {
 		dat_main_task$rational_belief[i] <- .5
@@ -130,7 +131,7 @@ dat_main_task <- mutate(dat_main_task,
 		dat_main_task$rational_belief < .5 ~ -max_hold,
 		TRUE ~ 0))
 
-# Rational hods should alos not change if trading is blocked:
+# Rational hods should also not change if trading is blocked:
 for (i in seq_len(nrow(dat_main_task))) {
   if (dat_main_task$condition[i] == 'Baseline') next
   if (dat_main_task$round_label[i] == 'end_p1') {
@@ -166,6 +167,7 @@ de_table <- tibble(
   sold_gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants)
   )
 
+cat('Starting to Calculate DE values\n')
 for (subj in dat_all_wide$participant) {
   for (i_path in seq_len(n_blocks)) {
 

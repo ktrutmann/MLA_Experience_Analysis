@@ -1,7 +1,3 @@
-library(tidyverse)
-
-if (!'master_list' %in% ls()) master_list$desc <- list()
-
 # What positions did they mainly update from in phase 2?
 dat_main_task %>%
   filter(i_round_in_path == 0) %>%
@@ -17,8 +13,7 @@ dat_main_task  %>%
   summarise(
     avg_wrong_updates = mean(belief_diff_since_last_flipped < 0, na.rm = TRUE)
   ) %>%
-  print(n = 30)
-# TODO: (5) Check on participant 25syxa48 in the pilot -> 0 wrong updates!
+  print(n = 400)
 
 # Save participant comments:
 master_list$comments <- na.omit(dat_all_wide$participant_comments)

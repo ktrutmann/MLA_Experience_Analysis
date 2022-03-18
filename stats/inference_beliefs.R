@@ -1,9 +1,3 @@
-library(tidyverse)
-library(sandwich)
-library(lmtest)
-
-if (!'master_list' %in% ls()) master_list$desc <- list()
-
 # Q: How do the conditions influence the "belief error" at end_p2?
 this_model <- dat_main_task %>%
   mutate(belief_error = abs(rational_belief - belief)) %>%
