@@ -93,7 +93,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4] / 2
+this_model$p_val_clust <- this_model_clust[, 4]
 master_list$cond_on_abs_inv_amount <- this_model
 
 

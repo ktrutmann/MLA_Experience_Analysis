@@ -100,3 +100,6 @@ oed_data %>%
 		facet_grid(rows = vars(lr_multiplier)) +
 		labs(x = 'Drift Rate', y = 'Belief Difference', fill = 'Phase Lengths') +
 		scale_fill_grey()
+
+ggsave(file.path('output', 'figures', 'OED_plot.eps'), device = 'eps', width = 15,
+	height = 10, units = 'cm')
