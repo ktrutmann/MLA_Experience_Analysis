@@ -10,4 +10,4 @@
 *.pdf
 *.bmp
 /renv/
-output/master_list.RDS
+/output/

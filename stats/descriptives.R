@@ -1,3 +1,6 @@
+# Save the whole wide dataset to use in the text:
+master_list$df <- dat_all_wide
+
 # What positions did they mainly update from in phase 2?
 dat_main_task %>%
   filter(i_round_in_path == 0) %>%
@@ -16,10 +19,10 @@ dat_main_task  %>%
   print(n = 400)
 
 # Save participant comments:
-master_list$comments <- na.omit(dat_all_wide$participant_comments)
-master_list$purpose <- na.omit(dat_all_wide$purpose)
-master_list$strat <- na.omit(dat_all_wide$strategy)
-master_list$saw_pattern <- na.omit(dat_all_wide$recognised_pattern)
+master_list$desc$comments <- na.omit(dat_all_wide$participant_comments)
+master_list$desc$purpose <- na.omit(dat_all_wide$purpose)
+master_list$desc$strat <- na.omit(dat_all_wide$strategy)
+master_list$desc$saw_pattern <- na.omit(dat_all_wide$recognised_pattern)
 
 # In the last round, did they short more often during a down drift?
 dat_main_task %>%

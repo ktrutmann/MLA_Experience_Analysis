@@ -12,7 +12,8 @@
 	[
 		{
 			"path": ".",
-			"file_exclude_patterns": [".RData", ".Rhistory", ".Rprofile", "renv.lock", ".gitignore"],
+			"file_exclude_patterns": [".RData", ".Rhistory", ".Rprofile", "renv.lock",
+				".gitignore", "*.sublime-project"],
 			"folder_exclude_patterns": ["renv", "output", "before_exp"]
 		}
 	],

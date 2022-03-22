@@ -11,5 +11,5 @@ dat_all_wide <- read_delim(
 de_table <- read_delim(
   file.path(data_path, 'de_table.csv'), delim = ';')
 
-master_list <- list()
-master_list$desc <- list()
+if (!'master_list' %in% ls()) master_list <- list()
+if (!'desc' %in% names(master_list)) master_list$desc <- list()

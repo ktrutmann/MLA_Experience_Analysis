@@ -8,7 +8,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$earnings_per_cond <- this_model
 
 
@@ -49,17 +49,15 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
-master_list$cond_on_final_hit_rate <- this_model
+master_list$cond_on_final_hit <- this_model
 
 
 # Drift-Hit rate of the final decision by condition:
 # I.e. how often did they invest according to the drift?
 this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
-	mutate(hit_rate_final_round = if_else(drift > .5,
-		hold, -hold)) %>%
+	mutate(hit_rate_final_round = if_else(drift > .5, hold, -hold)) %>%
 	group_by(drift, condition) %>%
-	summarize(avg = mean(hold))
 	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
@@ -67,24 +65,36 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
-master_list$cond_on_final_drift_hit_rate <- this_model
+master_list$cond_on_final_drift_hit <- this_model
 
 
-# Drift-Hit rate of the final decision by condition:
+# "Binary" Drift-Hit rate of the final decision by condition:
 # I.e. how often did they invest according to the drift?
 this_model <- dat_main_task %>%
-	filter(round_label == 'extra_round',
-		hold != 0) %>%
-	mutate(hit_rate_final_round = if_else((drift > .5) == (hold > 0),
-		1, 0)) %>%
-	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
+	filter(round_label == 'extra_round', hold != 0) %>%
+	mutate(hit_rate_final_round = if_else((drift > .5) == (hold > 0), 1, 0)) %>%
+	{glm(hit_rate_final_round ~ condition, data = ., family = 'binomial')} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
-master_list$cond_on_final_drift_hit_rate <- this_model
+master_list$cond_on_final_binary_drift_hit <- this_model
+
+
+# Q: Did they just generally invest less in the treatment conditions?
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round') %>%
+	mutate(abs_hold = abs(hold)) %>%
+	{lm(abs_hold ~ condition, data = .)} # nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$cond_on_abs_inv_amount <- this_model
 
 
 # Check for Myopic loss aversion (MLA)
