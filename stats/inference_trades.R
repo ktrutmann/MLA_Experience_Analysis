@@ -1,3 +1,5 @@
+# TODO: (2) Jörg: Also look at all oucomes "split" by drift.
+
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
 	filter(i_round_in_path == max(i_round_in_path)) %>%
@@ -28,13 +30,16 @@ master_list$cond_on_hold_err_end_p2 <- this_model
 
 # Analyse DE:
 this_model <- de_table %>%
-  {lm(de ~ condition, data = .)} #nolint
+  {lm(de_last_period ~ condition, data = .)} #nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$de_per_cond <- this_model
+
+# TODO: (3) Make two models: One for de and one for de_last_period.
+# TODO: (4) Compare to rational DE! That should also be affected by blocked trading!
 
 
 # Hit rate of the final decision by condition:
@@ -109,3 +114,5 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$mla_inv_by_cond <- this_model
+
+# TODO: (4) How dependent are the investments on the beliefs per condition?

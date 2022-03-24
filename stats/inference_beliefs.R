@@ -58,3 +58,9 @@ this_model$p_val_clust <- this_model_clust[, 4]
 master_list$updating_p2_by_condition <- this_model
 
 # TODO: (4) Also check for effects of the IMs.
+
+# TODO: (3) Are they "less sure" (i.e. closer to 50%) in the treatments?
+# TODO: (2) Use absolute inv. amount as controll variable? Stronger updates?
+# TODO: (1) Sanity Check: Are beliefs the same per cond at end_p1?
+# TODO: (1) Figure out how the updating pattern matches the beliefs and trades ->
+# They over update-unfavorables but are then "over-enthusiastic"? How?

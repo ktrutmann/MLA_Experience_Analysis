@@ -1,3 +1,5 @@
+# TODO: (4) Do some sanity checks split by condition! Do the numbers change?
+
 # Save the whole wide dataset to use in the text:
 master_list$df <- dat_all_wide
 

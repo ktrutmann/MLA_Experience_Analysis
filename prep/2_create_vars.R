@@ -149,7 +149,7 @@ dat_main_task <- mutate(dat_main_task,
 
 # DE Measure --------------------------------------------------------------
 # This tibble contains one row per price path
-# Note: We calculate the DE by countint the number of shares (Similar to Odean).
+# Note: We calculate the DE by counting the number of shares (Similar to Odean).
 # Sales can not go over the zero line (i.e. can be maximally abs(hold)).
 de_table <- tibble(
   participant = rep(unique(dat_main_task$participant), each = n_blocks),
