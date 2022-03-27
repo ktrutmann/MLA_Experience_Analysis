@@ -1,6 +1,7 @@
 library(tidyverse)
 library(patchwork)
 library(networkD3)
+library(ggbeeswarm)
 
 data_path <- file.path('..', 'data', 'processed')
 
