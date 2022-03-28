@@ -1,6 +1,8 @@
 library(tidyverse)
 library(sandwich)
 library(lmtest)
+# Clear up namespace collisions:
+filter <- dplyr::filter
 
 data_path <- file.path('..', 'data', 'processed')
 

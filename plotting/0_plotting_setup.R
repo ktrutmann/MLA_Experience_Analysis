@@ -2,6 +2,9 @@ library(tidyverse)
 library(patchwork)
 library(networkD3)
 library(ggbeeswarm)
+library(lmtest)
+# Clear up namespace collisions:
+filter <- dplyr::filter
 
 data_path <- file.path('..', 'data', 'processed')
 
@@ -12,7 +15,10 @@ dat_all_wide <- read_delim(
 de_table <- read_delim(
   file.path(data_path, 'de_table.csv'), delim = ';')
  
+# Theming:
 theme_set(theme_minimal())
+unibas_cols <- c('#A5D7D2', '#6AB0AA', '#4A908A')
+color_set <- unibas_cols  # Change color set here!
 
 # Set up the master list:
 if (!'master_list' %in% ls()) master_list <- list()
