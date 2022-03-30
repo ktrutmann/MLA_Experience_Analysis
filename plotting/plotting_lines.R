@@ -94,8 +94,8 @@ these_filters <- c('Holding Gain', 'Shorting Gain', 'Holding Loss', 'Shorting Lo
 make_plot <- function(dat, this_filter) {
   this_dat <- dat_main_task %>%
     filter(majority_updates_p2 == this_filter,
-      round_label == 'end_p2',
-  	  condition != 'Blocked Info') %>%
+		  # n_update_types_in_p2 == 1,
+      round_label == 'end_p2') %>%
     mutate(condition = factor(condition, levels = c(
       'Baseline', 'Blocked Trades', 'Delayed Info')))
 
@@ -105,6 +105,7 @@ make_plot <- function(dat, this_filter) {
   this_dat <- this_dat %>%
     group_by(condition) %>%
     summarise(avg_belief = mean(belief),
+    	avg_bayesian_belief = mean(rational_belief),
       n = n()) %>%
     add_column(std_err = this_model[, 'Std. Error']) %>%
     mutate(low_95ci = avg_belief - qt(.975, df = n - 1) * std_err,
@@ -114,11 +115,13 @@ make_plot <- function(dat, this_filter) {
     geom_point() +
     geom_line(group = 1) +
     geom_errorbar(aes(ymin = low_95ci, ymax = high_95ci),
-      width = .1) +
+      width = .05) +
+  	stat_summary(aes(y = avg_bayesian_belief), fun = mean, color = '#0033ee',
+      size = 1, shape = 13, show.legend = FALSE) +
     labs(x = 'Condition', y = 'Average Belief at end of Phase Two',
       title = str_c('Majority Updates from ', this_filter)) +
     geom_hline(yintercept = 50, alpha = .5) +
-    ylim(10, 90)
+    ylim(25, 75)
 }
 plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
 # Generating the plots via patchwork:
@@ -126,7 +129,8 @@ plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
 (plotlist[[3]] | plotlist[[4]])
 
 ggsave(file.path('output', 'figures',
-  'belief_end_p2_by_cond_and_hold_lines.pdf'), dev = 'pdf')
+  'belief_end_p2_by_cond_and_hold_lines.pdf'), dev = 'pdf',
+	width = 30, height = 20, units = 'cm')
 
 # How does the condition influence the belief in a down/up drift at end_p2?
 master_list$plots$beliefs_end_p2_lines <- dat_main_task %>%

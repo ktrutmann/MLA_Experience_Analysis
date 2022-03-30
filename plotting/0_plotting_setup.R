@@ -3,6 +3,7 @@ library(patchwork)
 library(networkD3)
 library(ggbeeswarm)
 library(lmtest)
+library(sandwich)
 # Clear up namespace collisions:
 filter <- dplyr::filter
 

@@ -15,18 +15,47 @@ ggsave(file.path('output', 'figures',
 
 
 # Beliefs at T2 by Condition ---------------------------------------------
-ggplot(filter(dat_main_task, round_label == 'end_p2'),
-  aes(x = ifelse(drift > .5, 'Drift Up', 'Drift Down'), y = belief)) +
-    facet_grid(cols = vars(condition)) +
-    geom_beeswarm() +
-    geom_boxplot(alpha = .75) +
-    stat_summary(aes(y = rational_belief), fun = mean, color = '#00aa00',
-      size = 3, shape = 3) +
-    stat_summary(fun = mean, geom = 'crossbar', color = '#dd0000') +
-    labs(x = 'Drift and Condition', y = 'Beliefs')
+dat_main_task %>%
+  filter(round_label == 'end_p2') %>%
+  mutate(drift = ifelse(drift > .5, 'Drift Up', 'Drift Down')) %>%
+  ggplot(aes(x = drift, y = belief, fill = drift)) +
+      facet_grid(cols = vars(condition)) +
+      geom_beeswarm(show.legend = FALSE) +
+      geom_boxplot(alpha = .75) +
+      stat_summary(aes(y = rational_belief), fun = mean, color = '#0033ee',
+        size = 2.5, shape = 13, show.legend = FALSE) +
+      stat_summary(fun = mean, geom = 'crossbar', color = '#dd0000',
+        show.legend = FALSE) +
+      scale_fill_manual(values = color_set[c(3, 1)]) +
+      labs(x = 'Drift and Condition', y = 'Beliefs', fill = 'Drift')
 
 ggsave(file.path('output', 'figures',
   'belief_end_p2_by_cond_drift_box.pdf'), dev = 'pdf')
+
+
+# Same thing split by majority hold (only including where it is hold/short):
+dat_main_task %>%
+filter(str_detect(majority_updates_p2, 'Hold|Short'),
+  # n_update_types_in_p2 == 1,
+  round_label == 'end_p2') %>%
+  mutate(majority_updates_p2_inv = str_extract(
+    majority_updates_p2, 'Hold|Short'),
+    drift = ifelse(drift > .5, 'Drift Up', 'Drift Down')) %>%
+  ggplot(aes(x = interaction(drift, majority_updates_p2_inv), y = belief,
+    fill = drift)) +
+    facet_grid(cols = vars(condition)) +
+    geom_beeswarm(show.legend = FALSE) +
+    geom_boxplot(alpha = .75) +
+    stat_summary(aes(y = rational_belief), fun = mean, color = '#0033ee',
+      size = 2.5, shape = 13, show.legend = FALSE) +
+    stat_summary(fun = mean, geom = 'crossbar', color = '#dd0000',
+      show.legend = FALSE) +
+    scale_fill_manual(values = color_set[c(3, 1)]) +
+    labs(x = 'Drift and Condition', y = 'Beliefs', fill = 'Drift') +
+    theme(axis.text.x = element_text(angle = 45))
+
+ggsave(file.path('output', 'figures',
+  'belief_end_p2_by_cond_drift_hold_box.pdf'), dev = 'pdf')
 
 
 # Belief Updating ---------------------------------------------

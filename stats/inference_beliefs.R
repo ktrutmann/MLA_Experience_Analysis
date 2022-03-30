@@ -1,5 +1,6 @@
 # Absolute Beliefs ------------------------------------
 # Sanity Check: Are beliefs the same per cond at end_p1? -> They are not!
+# However, the difference is only 1.9 and .9 percentage points!
 this_model <- dat_main_task %>%
   filter(round_label == 'end_p1') %>%
   {lm(belief ~ condition, data = .)} # nolint
@@ -17,6 +18,7 @@ master_list$cond_on_belief_end_p1 <- this_model
 # Q: How do the conditions influence the "belief error" at end_p2?
 this_model <- dat_main_task %>%
   mutate(belief_error = abs(rational_belief - belief)) %>%
+  mutate(drift = ifelse(drift > .5, 'Up', 'Down')) %>%
   filter(round_label == 'end_p2') %>%
   {lm(belief_error ~ condition, data = .)} #nolint
 
@@ -79,5 +81,3 @@ master_list$updating_p2_by_condition <- this_model
 
 # TODO: (3) Are they "less sure" (i.e. closer to 50%) in the treatments?
 # TODO: (2) Use absolute inv. amount as controll variable? Stronger updates?
-# TODO: (1) Figure out how the updating pattern matches the beliefs and trades ->
-# They over update-unfavorables but are then "over-enthusiastic"? How?

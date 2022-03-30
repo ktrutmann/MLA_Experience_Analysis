@@ -1,4 +1,5 @@
 # TODO: (2) Jörg: Also look at all oucomes "split" by drift.
+# TODO: (2) Did they short more in the treatment conditions?
 
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
@@ -14,11 +15,35 @@ this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$earnings_per_cond <- this_model
 
 
+# Q: Earnings per condition and drift:
+dat_prepared <- dat_main_task %>%
+	filter(i_round_in_path == max(i_round_in_path)) %>%
+	select(condition, participant, distinct_path_id, payoff, drift) %>%
+	mutate(drift = ifelse(drift > .5, 'Up', 'Down'))
+
+this_model <- lm(payoff ~ condition, data = dat_prepared)
+this_model_drift <- lm(payoff ~ condition * drift, data = dat_prepared)
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+this_model_clust_drift <- coeftest(this_model_drift, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$earnings_per_cond <- this_model
+
+this_model_drift$clust_str_err <- this_model_clust_drift[, 2]
+this_model_drift$p_val_clust <- this_model_clust_drift[, 4] / 2
+master_list$earnings_per_cond_drift <- this_model_drift
+
+
 # Q: How do the conditions influence the "investment error" at end_p2?
 this_model <- dat_main_task %>%
   mutate(hold_error = abs(rational_hold_after_trade - hold_after_trade)) %>%
   filter(round_label == 'end_p2') %>%
-  {lm(hold_error ~ condition, data = .)} #nolint
+	mutate(drift = ifelse(drift > .5, 'Up', 'Down')) %>%
+  {lm(hold_error ~ condition * drift, data = .)} #nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
@@ -30,7 +55,7 @@ master_list$cond_on_hold_err_end_p2 <- this_model
 
 # Analyse DE:
 this_model <- de_table %>%
-  {lm(de_last_period ~ condition, data = .)} #nolint
+  {lm(de ~ condition, data = .)} #nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
 # Add the cluster robust standard errors and p-values
@@ -38,7 +63,16 @@ this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$de_per_cond <- this_model
 
-# TODO: (3) Make two models: One for de and one for de_last_period.
+# Analyse DE_last_period:
+this_model <- de_table %>%
+  {lm(de_last_period ~ condition, data = .)} #nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$de_last_period_per_cond <- this_model
+
 # TODO: (4) Compare to rational DE! That should also be affected by blocked trading!
 
 

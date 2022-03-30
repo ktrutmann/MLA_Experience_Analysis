@@ -30,7 +30,7 @@ master_list$desc$saw_pattern <- na.omit(dat_all_wide$recognised_pattern)
 dat_main_task %>%
   filter(round_label == 'extra_round') %>%
   with(table(drift, hold_type)) %>%
-  prop.table() %>%
+  prop.table(1) %>%
   `*`(100) %>%
   round(2)
 
