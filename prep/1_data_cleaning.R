@@ -37,7 +37,6 @@ dat_main_task <- mutate(dat_main_task,
 
 
 # Creating the wide table --------------------------------------------------
-# TODO: (3) Add the new IM and Demographics questions
 dat_all_wide <- dat %>%
 	dplyr::select(c(
 		participant = 'participant.code',
@@ -52,8 +51,28 @@ dat_all_wide <- dat %>%
 		strategy_inertia = 'Strategy.1.player.strategy_inertia',
 		strategy_DE = 'Strategy.1.player.strategy_DE',
 		strategy_anti_DE = 'Strategy.1.player.strategy_anti_DE',
+	    soep_general = 'Individual_Measures.1.player.soep_general',
+	    soep_finance = 'Individual_Measures.1.player.soep_finance',
+	    soep_ambiguity = 'Individual_Measures.1.player.soep_ambiguity',
+	    soep_loss_aversion = 'Individual_Measures.1.player.soep_loss_aversion',
+	    falk_patience_question = 'Individual_Measures.1.player.falk_patience_question',
+	    chapman_impulse_question = 'Individual_Measures.1.player.chapman_impulse_question',
+	    prob_no_dept_payment = 'Individual_Measures.1.player.prob_no_dept_payment',
+		ravens_score = 'Ravens_Matrices.1.player.cogn_rpm_total_points',
+		ravens_overestimation_ans = 'Ravens_Matrices.1.player.pers_rpm_overestimation_answer',
+		ravens_overestimation_score = 'Ravens_Matrices.1.player.pers_rpm_overestimation_score',
+		ravens_overplacement_ans = 'Ravens_Matrices.1.player.pers_rpm_overplacement_answer',
 		age = 'Demographics.1.player.age',
 		gender = 'Demographics.1.player.gender',
+	    income_bracket = 'Demographics.1.player.income_bracket',
+	    household_size = 'Demographics.1.player.household_size',
+	    household_children = 'Demographics.1.player.household_children',
+	    ethnicity = 'Demographics.1.player.ethnicity',
+	    education = 'Demographics.1.player.education',
+	    math_abilities_self_report = 'Demographics.1.player.math_abilities_self_report',
+	    games_of_chance = 'Demographics.1.player.games_of_chance',
+	    traded_stocks = 'Demographics.1.player.traded_stocks',
+	    noticed_repetitions = 'Demographics.1.player.noticed_repetitions',
 		investment_experience = 'Demographics.1.player.investment_experience',
 		purpose = 'Demographics.1.player.purpose',
 		attentiveness = 'Demographics.1.player.attentiveness',
@@ -62,7 +81,7 @@ dat_all_wide <- dat %>%
 		recognised_pattern =  'Demographics.1.player.pattern',
 		participant_comments = 'Demographics.1.player.general_comments',
 		dont_use_data = 'Demographics.1.player.dont_use_data',
-		dont_use_data_rason = 'Demographics.1.player.dont_use_data_reason'))
+		dont_use_data_reason = 'Demographics.1.player.dont_use_data_reason'))
 
 
 # Excluding participants -----------------------------------

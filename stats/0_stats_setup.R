@@ -1,6 +1,7 @@
 library(tidyverse)
-library(sandwich)
-library(lmtest)
+library(sandwich) # for clustered errors
+library(lmtest) # for clustered errors
+library(ordinal) # for ordered logistic regression
 # Clear up namespace collisions:
 filter <- dplyr::filter
 

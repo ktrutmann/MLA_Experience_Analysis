@@ -218,4 +218,22 @@ dat_main_task %>%
   summary()
  # Apparently they do not. Makes sense since they're _less_ over-convinced.
 
-# TODO: (4) How dependent are the investments on the beliefs per condition?
+
+# Influence of beliefs on trades: ---------------------------------------
+rerun_olog <- FALSE  # Set to true if the regression should be rerun
+if (rerun_olog) {
+	dat_prepared <- filter(dat_main_task,
+		investable,
+		round_label != 'end_p1') %>%
+		mutate(hold_after_trade = factor(
+			hold_after_trade, levels = -4:4, ordered = TRUE))
+
+	olog_beliefs <- clmm(hold_after_trade ~ belief * condition + (1 | participant),
+		data = dat_prepared)
+
+	saveRDS(olog_beliefs, file.path('output', 'ordered_log_reg_beliefs_on_trades.RDS'))
+} else {
+	olog_beliefs <- readRDS(file.path('output', 'ordered_log_reg_beliefs_on_trades.RDS'))
+}
+master_list$logreg_beliefs <- coeftest(olog_beliefs)
+master_list$logreg_beliefs
