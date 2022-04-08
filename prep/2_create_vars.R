@@ -26,7 +26,8 @@ max_hold <- 4
 n_blocks <- max(dat_main_task$global_path_id)
 n_participants <- n_distinct(dat_main_task$participant)
 
-# General additional variables:
+
+# General additional variables: ----------------------------------------
 dat_main_task <- mutate(dat_main_task,
   belief_diff_since_last = c(NA, diff(belief)),
 	round_label = case_when(
@@ -69,6 +70,19 @@ dat_main_task <- mutate(dat_main_task,
   updated_from = if_else(lag(return_type_after_trade) == 'None', 'None',
     str_c(lag(hold_type_after_trade), lag(return_type_after_trade), sep = ' ')))
 
+# How many times has this path been shown before?
+dat_main_task$path_position <- NA
+cat('Creating the "path_position" variable. This takes a while, sorry.\n')
+for (this_participant in unique(dat_main_task$participant)) {
+  cat('\rWorking on participant', this_participant)
+  for (i in 0:7) {
+    dat_main_task$path_position[
+      dat_main_task$distinct_path_id == i &
+      dat_main_task$participant == this_participant] <- 1:3
+  }
+}
+cat('\n')
+
 # Determine whether someone was continualy invested and / or
 # in a gain/loss position:
 dat_main_task <- dat_main_task %>%
@@ -93,18 +107,20 @@ determine_majority <- function(dat) {
   return('Tie')
 }
 
+cat('\nGetting majority situation in p2\n')
 dat_main_task <- dat_main_task %>%
   filter(round_label %in% c('p2', 'end_p2')) %>%
   group_by(participant, global_path_id) %>%
   summarize(majority_updates_p2 = determine_majority(updated_from)) %>%
   ungroup() %>%
-  full_join(dat_main_task)
+  full_join(dat_main_task,
+    by = c('participant', 'global_path_id', 'majority_updates_p2'))
 
 
-# Rational actor:
+# Rational actor: ---------------------------------------------
 dat_main_task$rational_belief <- 999
 dat_main_task$rational_belief_state <- 999
-cat('Calculating rational trades\n')
+cat('Caclculating rational beliefs and trades\n')
 for (i in seq_len(nrow(dat_main_task))) {
 	if (dat_main_task$i_round_in_path[i] == 0) {
 		dat_main_task$rational_belief[i] <- .5
@@ -127,11 +143,14 @@ dat_main_task <- mutate(dat_main_task,
     NA, rational_belief * 100),
   rational_belief_state = rational_belief_state * 100,
 	rational_hold_after_trade = case_when(
-		dat_main_task$rational_belief > .5 ~ max_hold,
-		dat_main_task$rational_belief < .5 ~ -max_hold,
-		TRUE ~ 0))
+		rational_belief > 50 ~ max_hold,
+		rational_belief < 50 ~ -max_hold,
+    rational_belief == 50 ~ 0,
+		TRUE ~ 0),
+  rational_hold_after_trade = ifelse(round_label == 'extra_round',
+    NA, rational_hold_after_trade))
 
-# Rational hods should also not change if trading is blocked:
+# Rational holds / trades should also not change if trading is blocked:
 for (i in seq_len(nrow(dat_main_task))) {
   if (dat_main_task$condition[i] == 'Baseline') next
   if (dat_main_task$round_label[i] == 'end_p1') {
@@ -141,7 +160,31 @@ for (i in seq_len(nrow(dat_main_task))) {
   }
 }
 
-# Correct belief updates by the rational updates:
+dat_main_task <- mutate(dat_main_task,
+  rational_hold = lag(rational_hold_after_trade),
+  rational_trade = c(diff(rational_hold), NA))
+
+# Rational Return:
+cat('Calculating rational returns\n')
+dat_main_task$rational_returns <- 0
+for (i in seq_len(nrow(dat_main_task) - 1) + 1) {
+  if (dat_main_task$round_label[i] == 'extra_round' ||
+    dat_main_task$i_round_in_path[i] == 0)
+    next
+
+  previous_return <- dat_main_task$rational_returns[i - 1]
+
+  if (sign(dat_main_task$rational_hold[i]) != sign(dat_main_task$rational_hold[i - 1]) ||
+      dat_main_task$rational_hold[i] == 0) {
+    previous_return <- 0
+  }
+
+  dat_main_task$rational_returns[i] <- previous_return + dat_main_task$rational_hold[i] *
+    (dat_main_task$price[i] - dat_main_task$price[i - 1])
+}
+
+
+# Correcting belief updates by the rational updates:
 dat_main_task <- mutate(dat_main_task,
   belief_updates_bayes_corrected = belief_diff_since_last_flipped -
     abs(c(NA, diff(rational_belief))))
@@ -164,11 +207,21 @@ de_table <- tibble(
   n_sold_loss_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
   sold_loss_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
   n_sold_gain_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
-  sold_gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants)
+  sold_gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_n_loss_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_loss_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_n_gain_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_n_sold_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_sale_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_n_sold_loss_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_sold_loss_last_period = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_n_sold_gain_shares = vector(mode = 'numeric', length = n_blocks * n_participants),
+  rational_sold_gain_last_period = vector(mode = 'numeric', length = n_blocks * n_participants)
   )
 
-cat('Starting to Calculate DE values\n')
-for (subj in dat_all_wide$participant) {
+for (subj in sort(dat_all_wide$participant)) {
+  cat('\rCalculating DE values for participant', subj)
   for (i_path in seq_len(n_blocks)) {
 
     # This only considers the periods in which they could invest
@@ -178,6 +231,8 @@ for (subj in dat_all_wide$participant) {
     path_selector <- de_table$participant == subj & de_table$block == i_path
     sale_flag <- this_dat$hold > 0 & this_dat$transaction < 0 |
           this_dat$hold < 0 & this_dat$transaction > 0
+    rational_sale_flag <- this_dat$rational_hold > 0 & this_dat$rational_trade < 0 |
+          this_dat$rational_hold < 0 & this_dat$rational_trade > 0
 
     de_table[path_selector, 'n_gain_shares'] <- sum(abs(this_dat$hold[this_dat$returns > 0]))
     de_table[path_selector, 'n_loss_shares'] <- sum(abs(this_dat$hold[this_dat$returns < 0]))
@@ -190,23 +245,53 @@ for (subj in dat_all_wide$participant) {
       sale_flag & this_dat$returns > 0]), abs(this_dat$transaction[
       sale_flag & this_dat$returns > 0])))
 
+    # Rational DE:
+    de_table[path_selector, 'rational_n_gain_shares'] <- sum(
+      abs(this_dat$rational_hold[this_dat$rational_returns > 0]))
+    de_table[path_selector, 'rational_n_loss_shares'] <- sum(
+      abs(this_dat$rational_hold[this_dat$rational_returns < 0]))
+    de_table[path_selector, 'rational_n_sold_shares'] <- sum(
+      pmin(abs(this_dat$rational_hold[rational_sale_flag]),
+        abs(this_dat$transaction[rational_sale_flag])))
+    de_table[path_selector, 'rational_n_sold_loss_shares'] <- sum(
+      pmin(abs(this_dat$rational_hold[
+      rational_sale_flag & this_dat$rational_returns < 0]), abs(this_dat$rational_trade[
+      rational_sale_flag & this_dat$rational_returns < 0])))
+    de_table[path_selector, 'rational_n_sold_gain_shares'] <- sum(
+      pmin(abs(this_dat$rational_hold[
+      rational_sale_flag & this_dat$rational_returns > 0]), abs(this_dat$rational_trade[
+      rational_sale_flag & this_dat$rational_returns > 0])))
+
     # Filter it further down to get the WC style DE measure only counting the last decision:
     this_dat <- filter(this_dat, round_label == 'end_p2')
     sale_flag <- this_dat$hold > 0 & this_dat$transaction < 0 |
                         this_dat$hold < 0 & this_dat$transaction > 0
+    rational_sale_flag <- this_dat$rational_hold > 0 & this_dat$rational_trade < 0 |
+          this_dat$rational_hold < 0 & this_dat$rational_trade > 0
 
     de_table[path_selector, 'gain_last_period'] <- (this_dat$returns > 0) * abs(this_dat$hold)
     de_table[path_selector, 'loss_last_period'] <- (this_dat$returns < 0) * abs(this_dat$hold)
     de_table[path_selector, 'sales_last_period'] <- min(abs(this_dat$hold),
-      abs(this_dat$transaction))
-
+      abs(this_dat$transaction)) * sale_flag
     de_table[path_selector, 'sold_loss_last_period'] <- de_table[path_selector,
-    'sales_last_period'] * (this_dat$returns < 0)
-
+      'sales_last_period'] * (this_dat$returns < 0)
     de_table[path_selector, 'sold_gain_last_period'] <- de_table[path_selector,
-    'sales_last_period'] * (this_dat$returns > 0)
+      'sales_last_period'] * (this_dat$returns > 0)
+
+    # Rational DE:
+    de_table[path_selector, 'rational_gain_last_period'] <-
+      (this_dat$rational_returns > 0) * abs(this_dat$rational_hold)
+    de_table[path_selector, 'rational_loss_last_period'] <-
+      (this_dat$rational_returns < 0) * abs(this_dat$rational_hold)
+    de_table[path_selector, 'rational_sales_last_period'] <-
+      min(abs(this_dat$rational_hold), abs(this_dat$rational_trade)) * rational_sale_flag
+    de_table[path_selector, 'sold_loss_last_period'] <- de_table[path_selector,
+      'rational_sales_last_period'] * (this_dat$rational_returns < 0)
+    de_table[path_selector, 'sold_gain_last_period'] <- de_table[path_selector,
+      'rational_sales_last_period'] * (this_dat$rational_returns > 0)
   }
 }
+cat('\n')
 
 de_table <- de_table %>%
   group_by(participant, condition) %>%
@@ -225,6 +310,17 @@ de_table <- de_table %>%
   de_table$de_last_period  <-
     de_table$pgr_last_period - de_table$plr_last_period
 
+  # Rational DE measures:
+  de_table$rational_plr <- de_table$rational_n_sold_loss_shares / de_table$rational_n_loss_shares
+  de_table$rational_pgr <- de_table$rational_n_sold_gain_shares / de_table$rational_n_gain_shares
+  de_table$rational_de  <- de_table$rational_pgr - de_table$rational_plr
+
+  de_table$rational_plr_last_period <-
+    de_table$rational_sold_loss_last_period / de_table$rational_loss_last_period
+  de_table$rational_pgr_last_period <-
+    de_table$rational_sold_gain_last_period / de_table$rational_gain_last_period
+  de_table$rational_de_last_period  <-
+    de_table$rational_pgr_last_period - de_table$rational_plr_last_period
 
 # Saving the updated dataframe --------------------------------------------
 write_delim(dat_main_task, file.path(data_path, data_file_name_long), delim = ';')

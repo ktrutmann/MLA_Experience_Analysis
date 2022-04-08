@@ -15,6 +15,44 @@ ggplot(line_df,
 		 size = 'Amount', alpha = 'Amount')
 
 
+# Belief updating by amount invested ----------------------------------------
+dat_main_task %>%
+	ggplot(aes(hold, abs(belief_diff_since_last), group = hold)) +
+	geom_vline(xintercept = 0) +
+	geom_violin(fill = color_set[1], alpha = .65) +
+	stat_summary(fun.data = mean_se) +
+	stat_summary(aes(group = 1), geom = 'line', fun = 'mean') +
+	scale_x_continuous(breaks = -4:4) +
+	labs(x = 'Number of Shares Held', y = 'Absolute Belief Updates')
+
+
+# Beliefs at start by path_position ----------------------------------------
+# Note: This checks whether they noticed the paths repeating
+# Uncomment the commented lines to get the individual plots.
+dat_main_task %>%
+	filter(i_round_in_path == 0,
+		# participant %in% unique(participant)[1:30 + 300]
+		# participant == 'rnrtl5qn'
+    ! participant %in% c('dpokcrla', 'fsmd4gr9', 'gho0n3ez', 'o1n0lcow', 'rnrtl5qn'),
+		) %>%
+  mutate(drift = ifelse(drift > .5, 'Drift Up', 'Drift Down')) %>%
+	ggplot(aes(path_position, belief, group = drift, color = drift)) +
+		stat_summary(fun.data = 'mean_se', position = position_dodge(width = .01)) +
+		stat_summary(geom = 'line', fun = 'mean') +
+		# facet_wrap(facets = vars(participant)) +
+		scale_color_manual(values = color_set[c(3, 1)]) +
+		scale_x_continuous(breaks = c(1, 2, 3)) +
+		labs(x = 'Path Position', y = 'Initial Belief', color = 'Drift')
+
+	# Note: Checked individual paths and comments from the following participants:
+	# dpokcrla -> Nothing suspicious
+	# fsmd4gr9 -> Also nothing. "Felt deceived"
+	# gho0n3ez -> Engagement: 0... But I only filter for attentiveness.
+	# o1n0lcow -> Only experienced up drifts.
+	# rnrtl5qn -> Seemed to know, but no indication in comments...
+	# Excluding these does not change the belief updating pattern though.
+
+
 # Individual price paths ----------------------------------------------------
 if (FALSE) {  # Doesn't need to be sourced every time!
 for (this_subj in unique(dat_main_task$participant)) {

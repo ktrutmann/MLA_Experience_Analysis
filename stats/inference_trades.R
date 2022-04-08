@@ -1,5 +1,4 @@
-# TODO: (2) Jörg: Also look at all oucomes "split" by drift.
-# TODO: (2) Did they short more in the treatment conditions?
+# TODO: (6) Jörg: Also look at all oucomes "split" by drift.
 
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
@@ -96,7 +95,6 @@ master_list$cond_on_final_hit <- this_model
 this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
 	mutate(hit_rate_final_round = if_else(drift > .5, hold, -hold)) %>%
-	group_by(drift, condition) %>%
 	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
@@ -120,6 +118,36 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_on_final_binary_drift_hit <- this_model
+
+
+# Same, but with the drift as a predictor:
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round') %>%
+	mutate(hit_rate_final_round = if_else(drift > .5, hold, -hold),
+		drift = ifelse(drift > .5, 'Up', 'Down')) %>%
+	{lm(hit_rate_final_round ~ condition * drift, data = .)} # nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$cond_drift_on_final_drift_hit <- this_model
+
+
+# Binarized drift hit rate including drift as a predictor:
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round', hold != 0) %>%
+	mutate(hit_rate_final_round = if_else((drift > .5) == (hold > 0), 1, 0),
+		drift = ifelse(drift > .5, 'Up', 'Down')) %>%
+	{glm(hit_rate_final_round ~ condition * drift, data = ., family = 'binomial')} # nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$cond_drift_final_binary_drift_hit <- this_model  # nolint
 
 
 # Q: Did they just generally invest less in the treatment conditions?
@@ -148,5 +176,16 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$mla_inv_by_cond <- this_model
+
+
+# Did they short more at the end of treatment conditions?
+dat_main_task %>%
+  filter(round_label == 'end_p2',
+		hold_type_after_trade != 'None') %>%
+	mutate(drift = ifelse(drift > .5, 'Up', 'Down'),
+		hold = ifelse(hold_type_after_trade == 'Holding', 1, -1)) %>%
+  {lm(hold ~ condition, data = .)} %>% #nolint
+  summary()
+ # Apparently they do not. Makes sense since they're _less_ over-convinced.
 
 # TODO: (4) How dependent are the investments on the beliefs per condition?

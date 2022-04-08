@@ -14,6 +14,21 @@ ggsave(file.path('output', 'figures',
   'hold_end_p2_by_cond_drift_box.pdf'), dev = 'pdf')
 
 
+# Beliefs at Start of path ---------------------------------------------
+dat_main_task %>%
+  filter(i_round_in_path == 0,
+  ! belief %in% c(0, 100)) %>%
+  mutate(drift = ifelse(drift > .5, 'Drift Up', 'Drift Down')) %>%
+  ggplot(aes(x = drift, y = belief, fill = drift)) +
+      geom_beeswarm(show.legend = FALSE) +
+      facet_grid(cols = vars(condition)) +
+      geom_boxplot(alpha = .75) +
+      stat_summary(fun = mean, geom = 'crossbar', color = '#dd0000',
+        show.legend = FALSE) +
+      scale_fill_manual(values = color_set[c(3, 1)]) +
+      labs(x = 'Drift and Condition', y = 'Beliefs', fill = 'Drift')
+
+
 # Beliefs at T2 by Condition ---------------------------------------------
 dat_main_task %>%
   filter(round_label == 'end_p2') %>%
@@ -59,6 +74,7 @@ ggsave(file.path('output', 'figures',
 
 
 # Belief Updating ---------------------------------------------
+# Note: Double checked. Everything seems correct here...
 dat_prepared <- dat_main_task %>%
   mutate(return_pos_end_last_round = lag(return_type_after_trade),
     hold_type_end_last_round = lag(hold_type_after_trade)) %>%
