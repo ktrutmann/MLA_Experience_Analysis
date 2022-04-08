@@ -52,7 +52,7 @@ this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_on_hold_err_end_p2 <- this_model
 
 
-# Analyse DE:
+# Analyse DE: -------------------------------------------------
 this_model <- de_table %>%
   {lm(de ~ condition, data = .)} #nolint
 
@@ -72,9 +72,38 @@ this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$de_last_period_per_cond <- this_model
 
-# TODO: (4) Compare to rational DE! That should also be affected by blocked trading!
 
+# Compare to rational DE. That should also be affected by blocked trading!
+this_dat <- de_table %>%
+	select(participant, condition, de, rational_de, de_last_period,
+		rational_de_last_period) %>%
+	mutate(de_diff_to_rational = de - rational_de,
+		 de_last_period_diff_to_rational = de_last_period - rational_de_last_period)
 
+# "Corrected" DE during p2:
+this_model <- this_dat %>%
+  {lm(de_diff_to_rational ~ condition, data = .)} #nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$de_vs_rational <- this_model
+# The DE gets smaller, even when controlling for the rational de!
+
+# "Corrected" DE final round:
+this_model <- this_dat %>%
+	na.omit() %>%
+  {lm(de_last_period_diff_to_rational ~ condition, data = .)} #nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL, cluster = ~participant)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$de_vs_rational_last_period <- this_model
+# No effect for the final-round DE measure.
+
+# Hit rates: ----------------------------------------------------------
 # Hit rate of the final decision by condition:
 this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
@@ -150,6 +179,7 @@ this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_drift_final_binary_drift_hit <- this_model  # nolint
 
 
+# Other Analyses: --------------------------------------------------
 # Q: Did they just generally invest less in the treatment conditions?
 this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%

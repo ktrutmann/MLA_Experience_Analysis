@@ -283,12 +283,12 @@ for (subj in sort(dat_all_wide$participant)) {
       (this_dat$rational_returns > 0) * abs(this_dat$rational_hold)
     de_table[path_selector, 'rational_loss_last_period'] <-
       (this_dat$rational_returns < 0) * abs(this_dat$rational_hold)
-    de_table[path_selector, 'rational_sales_last_period'] <-
+    de_table[path_selector, 'rational_sale_last_period'] <-
       min(abs(this_dat$rational_hold), abs(this_dat$rational_trade)) * rational_sale_flag
-    de_table[path_selector, 'sold_loss_last_period'] <- de_table[path_selector,
-      'rational_sales_last_period'] * (this_dat$rational_returns < 0)
-    de_table[path_selector, 'sold_gain_last_period'] <- de_table[path_selector,
-      'rational_sales_last_period'] * (this_dat$rational_returns > 0)
+    de_table[path_selector, 'rational_sold_loss_last_period'] <- de_table[path_selector,
+      'rational_sale_last_period'] * (this_dat$rational_returns < 0)
+    de_table[path_selector, 'rational_sold_gain_last_period'] <- de_table[path_selector,
+      'rational_sale_last_period'] * (this_dat$rational_returns > 0)
   }
 }
 cat('\n')
@@ -307,20 +307,24 @@ de_table <- de_table %>%
     de_table$sold_loss_last_period / de_table$loss_last_period
   de_table$pgr_last_period <-
     de_table$sold_gain_last_period / de_table$gain_last_period
-  de_table$de_last_period  <-
+  de_table$de_last_period <-
     de_table$pgr_last_period - de_table$plr_last_period
+  de_table$de_last_period[abs(de_table$de_last_period) == Inf] <- NA
 
   # Rational DE measures:
-  de_table$rational_plr <- de_table$rational_n_sold_loss_shares / de_table$rational_n_loss_shares
-  de_table$rational_pgr <- de_table$rational_n_sold_gain_shares / de_table$rational_n_gain_shares
-  de_table$rational_de  <- de_table$rational_pgr - de_table$rational_plr
+  de_table$rational_plr <- de_table$rational_n_sold_loss_shares /
+    de_table$rational_n_loss_shares
+  de_table$rational_pgr <- de_table$rational_n_sold_gain_shares /
+    de_table$rational_n_gain_shares
+  de_table$rational_de <- de_table$rational_pgr - de_table$rational_plr
 
   de_table$rational_plr_last_period <-
     de_table$rational_sold_loss_last_period / de_table$rational_loss_last_period
   de_table$rational_pgr_last_period <-
     de_table$rational_sold_gain_last_period / de_table$rational_gain_last_period
-  de_table$rational_de_last_period  <-
+  de_table$rational_de_last_period <-
     de_table$rational_pgr_last_period - de_table$rational_plr_last_period
+  de_table$rational_de_last_period[abs(de_table$rational_de_last_period) == Inf] <- NA
 
 # Saving the updated dataframe --------------------------------------------
 write_delim(dat_main_task, file.path(data_path, data_file_name_long), delim = ';')
