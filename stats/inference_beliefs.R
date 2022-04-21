@@ -111,18 +111,27 @@ lm(belief_diff_since_last ~ abs(hold), data = dat_main_task) %>%
 
 
 # Belief Updating end_p1 to end_p2 ------------------------------------
-this_model <- dat_main_task %>%
+this_dat <- dat_main_task %>%
   filter(round_label %in% c('end_p1', 'end_p2')) %>%
     pivot_wider(id_cols = c('participant', 'distinct_path_id', 'condition',
       'drift'), values_from = 'belief', names_from = 'round_label',
       names_prefix = 'belief_') %>%
   mutate(drift = as.factor(if_else(drift == .65, 'Up', 'Down')),
-    belief_diff = belief_end_p2 - belief_end_p1) %>%
-  {lm(belief_diff ~ condition * drift, data = .)}
+    belief_diff = belief_end_p2 - belief_end_p1)
 
+this_model <- lm(belief_diff ~ condition * drift, data = this_dat)
 this_model_clust <- coeftest(this_model,
   vcov = vcovCL, cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4]
 master_list$updating_p1_to_p2_by_condition <- this_model
+
+# Beleif_end_p2 using end_p1 as control variable:
+this_model <- lm(belief_end_p2 ~ condition * drift + belief_end_p1, data = this_dat)
+this_model_clust <- coeftest(this_model,
+  vcov = vcovCL, cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4]
+master_list$belief_end_p2_controled_for_p1 <- this_model

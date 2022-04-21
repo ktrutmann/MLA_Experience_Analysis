@@ -1,4 +1,4 @@
-# TODO: (6) Jörg: Also look at all oucomes "split" by drift.
+# TODO: (6) Jörg: Also look at all oucomes "split" by drift and price update.
 
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
