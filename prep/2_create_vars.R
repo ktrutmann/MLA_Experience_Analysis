@@ -114,7 +114,7 @@ dat_main_task <- dat_main_task %>%
   summarize(majority_updates_p2 = determine_majority(updated_from)) %>%
   ungroup() %>%
   full_join(dat_main_task,
-    by = c('participant', 'global_path_id', 'majority_updates_p2'))
+    by = c('participant', 'global_path_id'))
 
 
 # Rational actor: ---------------------------------------------
@@ -325,6 +325,13 @@ de_table <- de_table %>%
   de_table$rational_de_last_period <-
     de_table$rational_pgr_last_period - de_table$rational_plr_last_period
   de_table$rational_de_last_period[abs(de_table$rational_de_last_period) == Inf] <- NA
+
+
+# Inverse Updates per Participant --------------------------------------------
+dat_all_wide <- dat_main_task %>%
+  group_by(participant) %>%
+  summarise(avg_inverse_updates = mean(inverse_update, na.rm = TRUE)) %>%
+  full_join(dat_all_wide, by = 'participant')
 
 # Saving the updated dataframe --------------------------------------------
 write_delim(dat_main_task, file.path(data_path, data_file_name_long), delim = ';')
