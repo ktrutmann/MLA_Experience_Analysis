@@ -1,0 +1,316 @@
+---
+title: "Closer Look at Belief Updates"
+---
+
+This is an investigation into the discrepancy between the updating pattern we observe on aggregate and the beliefs we end up seeing at the end of the second experimental phase.
+
+```{r load_data, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+  fig.dim = c(10, 8))
+source(file.path('plotting', '0_plotting_setup.R'))
+source(file.path('stats', '0_stats_setup.R'))
+```
+
+# Describing the Problem:
+There is a distinct discrepancy between the the belief updating pattern we see here
+```{r belief_updating_plot}
+dat_prepared <- dat_main_task %>%
+  mutate(return_pos_end_last_round = lag(return_type_after_trade),
+    hold_type_end_last_round = lag(hold_type_after_trade)) %>%
+  filter(condition %in% c('Baseline', 'Blocked Trades'),
+    round_label %in% c('p2', 'end_p2'),
+    return_pos_end_last_round != 'None',
+    favorable_move_since_last != 'None')
+
+# "Uncorrected" Belief updating in the second phase:
+p1 <- dat_prepared %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected),
+    se = sd(abs(belief_updates_bayes_corrected)) / sqrt(n()),
+    n = n()) %>%
+  ggplot(aes(return_pos_end_last_round, avg_update,
+      fill = favorable_move_since_last)) +
+    geom_col(position = 'dodge') +
+    geom_errorbar(aes(ymin = avg_update - se, ymax = avg_update + se),
+      width = .2, position = position_dodge(.9)) +
+    facet_grid(cols = vars(condition)) +
+    scale_fill_manual(values = c('#A5D7D2', '#6AB0AA')) +
+    labs(title = 'Belief Updating in Phase Two',
+      x = 'Position and Condition',
+      y = 'Mean Bayes Corrected Update',
+      fill = 'Favorability')
+
+# Add dots that split this View by "Holding" and "Shorting"
+dat_prepared <- dat_prepared %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last,
+    hold_type_end_last_round, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected))
+
+p1 +
+  geom_point(data = dat_prepared, aes(
+    x = return_pos_end_last_round,
+    color = interaction(hold_type_end_last_round, favorable_move_since_last)),
+  position = position_dodge(.9), cex = 3) +
+  scale_color_manual(name = 'Hold Type',
+    labels = c('Holding', 'Shorting'),
+    breaks = c('Holding.Favorable', 'Shorting.Favorable'),
+    values = c(Holding.Favorable = 'darkblue', Shorting.Favorable = 'darkred',
+      Holding.Unfavorable = 'darkblue', Shorting.Unfavorable = 'darkred'))
+```
+
+and the beliefs at the end of the second phase which can be seen here:
+```{r beliefs_end_p2}
+these_filters <- c('Holding Gain', 'Shorting Gain', 'Holding Loss', 'Shorting Loss')
+make_plot <- function(dat, this_filter) {
+  this_dat <- dat_main_task %>%
+    filter(majority_updates_p2 == this_filter,
+      round_label == 'end_p2') %>%
+    mutate(condition = factor(condition, levels = c(
+      'Baseline', 'Blocked Trades', 'Delayed Info')))
+
+  this_model <- lm(belief ~ condition, data = this_dat) %>%
+    coeftest(vcov = vcovCL, cluster = ~participant)
+
+  this_dat <- this_dat %>%
+    group_by(condition) %>%
+    summarise(avg_belief = mean(belief),
+      avg_bayesian_belief = mean(rational_belief),
+      n = n()) %>%
+    add_column(std_err = this_model[, 'Std. Error']) %>%
+    mutate(low_95ci = avg_belief - qt(.975, df = n - 1) * std_err,
+      high_95ci = avg_belief + qt(.975, df = n - 1) * std_err)
+
+  ggplot(this_dat, aes(x = condition, y = avg_belief)) +
+    geom_point() +
+    geom_line(group = 1) +
+    geom_errorbar(aes(ymin = low_95ci, ymax = high_95ci),
+      width = .05) +
+    geom_point(aes(y = avg_bayesian_belief), color = '#0033ee',
+      size = 7, shape = 13, show.legend = FALSE) +
+    labs(x = 'Condition', y = 'Average Belief at end of Phase Two',
+      title = str_c('Majority Updates from ', this_filter)) +
+    geom_hline(yintercept = 50, alpha = .5) +
+    ylim(25, 75)
+}
+plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
+# Generating the plots via patchwork:
+(plotlist[[1]] | plotlist[[2]]) /
+(plotlist[[3]] | plotlist[[4]])
+```
+
+According to the belief updating plot we would expect the following result:
+People update favorable information after having made a loss more strongly in our treatment conditions (or at least the Blocked Trades condition).
+For this reason, we would expect that people would become more optimistic in the "Holding Loss" quarter (as favorablie information is now updated more strongly) and more "pessimistic" (i.e. lower belief in a price increase) in the "Shorting Loss" quarter (as favorable Information, i.e. information indicating a downward trend) is now updated more strongly.
+
+Instead we see the strongest effect when shorting gains, where people become less convinced of further favorablie moves in the treatment conditions.
+We would expect such an effect to appear when the treatment condition would "dampen" the updating from favorable information in the gain position (or boost the effect of unfavorable information).
+This is however not the case, neither in general, nor specifically for short selling.
+
+
+# "Purifying"
+As a first step, we will investigate whether the pattern holds when looking at cases where participants _only_ had one type of position/holding pattern.
+This means we want to see only the updates where participants for example spent the whole of phase two holding a gain position in both the Baseline and Blocked Trades condition.
+Additionally, the treatment condition paths are also only included if their Baseline version has a single holding pattern.
+These are the same plots as above when filtering for these conditions:
+
+```{r belief_updating_purified}
+paths_with_single_update_type <- dat_main_task %>%
+  filter(condition %in% c('Baseline', 'Blocked Trades'),
+    i_round_in_path == 5) %>%
+  select(participant, condition, majority_updates_p2,
+    n_update_types_in_p2, distinct_path_id) %>%
+  pivot_wider(id_cols = c('participant', 'distinct_path_id'),
+    names_from = 'condition',
+    values_from = c('majority_updates_p2', 'n_update_types_in_p2')) %>%
+  filter(n_update_types_in_p2_Baseline == 1,
+    `n_update_types_in_p2_Blocked Trades` == 1,
+    majority_updates_p2_Baseline == `majority_updates_p2_Blocked Trades`)
+
+dat_prepared <- dat_main_task %>%
+  right_join(paths_with_single_update_type, by = c('participant', 'distinct_path_id')) %>%
+  mutate(return_pos_end_last_round = lag(return_type_after_trade),
+    hold_type_end_last_round = lag(hold_type_after_trade)) %>%
+  filter(condition %in% c('Baseline', 'Blocked Trades'),
+    round_label %in% c('p2', 'end_p2'),
+    return_pos_end_last_round != 'None',
+    favorable_move_since_last != 'None')
+
+p1 <- dat_prepared %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected),
+    se = sd(abs(belief_updates_bayes_corrected)) / sqrt(n()),
+    n = n()) %>%
+  ggplot(aes(return_pos_end_last_round, avg_update,
+      fill = favorable_move_since_last)) +
+    geom_col(position = 'dodge') +
+    geom_errorbar(aes(ymin = avg_update - se, ymax = avg_update + se),
+      width = .2, position = position_dodge(.9)) +
+    facet_grid(cols = vars(condition)) +
+    scale_fill_manual(values = c('#A5D7D2', '#6AB0AA')) +
+    labs(title = 'Belief updating using only "pure" phases',
+      x = 'Position and Condition',
+      y = 'Mean Bayes Corrected Update',
+      fill = 'Favorability')
+
+# Add dots that split this View by "Holding" and "Shorting"
+dat_prepared <- dat_prepared %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last,
+    hold_type_end_last_round, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected))
+
+p1 +
+  geom_point(data = dat_prepared, aes(
+    x = return_pos_end_last_round,
+    color = interaction(hold_type_end_last_round, favorable_move_since_last)),
+  position = position_dodge(.9), cex = 3) +
+  scale_color_manual(name = 'Hold Type',
+    labels = c('Holding', 'Shorting'),
+    breaks = c('Holding.Favorable', 'Shorting.Favorable'),
+    values = c(Holding.Favorable = 'darkblue', Shorting.Favorable = 'darkred',
+      Holding.Unfavorable = 'darkblue', Shorting.Unfavorable = 'darkred'))
+```
+
+```{r beliefs_end_p2_purified}
+these_filters <- c('Holding Gain', 'Shorting Gain', 'Holding Loss', 'Shorting Loss')
+make_plot <- function(dat, this_filter) {
+  this_dat <- dat_main_task %>%
+    filter(majority_updates_p2 == this_filter,
+      n_update_types_in_p2 == 1,
+      round_label == 'end_p2') %>%
+    mutate(condition = factor(condition, levels = c(
+      'Baseline', 'Blocked Trades', 'Delayed Info')))
+
+  this_model <- lm(belief ~ condition, data = this_dat) %>%
+    coeftest(vcov = vcovCL, cluster = ~participant)
+
+  this_dat <- this_dat %>%
+    group_by(condition) %>%
+    summarise(avg_belief = mean(belief),
+      avg_bayesian_belief = mean(rational_belief),
+      n = n()) %>%
+    add_column(std_err = this_model[, 'Std. Error']) %>%
+    mutate(low_95ci = avg_belief - qt(.975, df = n - 1) * std_err,
+      high_95ci = avg_belief + qt(.975, df = n - 1) * std_err)
+
+  ggplot(this_dat, aes(x = condition, y = avg_belief)) +
+    geom_point() +
+    geom_line(group = 1) +
+    geom_errorbar(aes(ymin = low_95ci, ymax = high_95ci),
+      width = .05) +
+    geom_point(aes(y = avg_bayesian_belief), color = '#0033ee',
+      size = 7, shape = 13, show.legend = FALSE) +
+    labs(x = 'Condition', y = 'Average Belief at end of Phase Two',
+      title = str_c('All Updates from ', this_filter)) +
+    geom_hline(yintercept = 50, alpha = .5) +
+    ylim(25, 75)
+}
+plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
+# Generating the plots via patchwork:
+(plotlist[[1]] | plotlist[[2]]) /
+(plotlist[[3]] | plotlist[[4]])
+```
+
+This view shows us that when analysing only the "pure" phases, we do find a mean reversion inducing pattern in the Baseline condition.
+This means that unfavorable information is over-updated in gains and under-updates in losses.
+This does explain the "conservative" pattern when holding.
+However, looking at shorting, we see over-optimism in the Baseline condition both when experiencing a gain and a loss.
+While such over-optimism makes sense in the losses, it is unexpected in the gains, and also does not match with the updating pattern in the Baseline condition.
+
+
+# Excluding "Wrong Updaters"
+We now have a look at the picture only including those who update contrary to the Bayesian updater less than some amount.
+In this case we take the median value of `r round(median(dat_all_wide$avg_inverse_updates), 2)` as a cutof.
+
+```{r belief_updates_less_inverse}
+dat_prepared <- dat_main_task %>%
+  mutate(return_pos_end_last_round = lag(return_type_after_trade),
+    hold_type_end_last_round = lag(hold_type_after_trade)) %>%
+  filter(condition %in% c('Baseline', 'Blocked Trades'),
+    round_label %in% c('p2', 'end_p2'),
+    return_pos_end_last_round != 'None',
+    favorable_move_since_last != 'None') %>%
+  filter(participant %in% filter(dat_all_wide,
+    avg_inverse_updates < median(avg_inverse_updates))$participant)
+
+p1 <- dat_prepared %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected),
+    se = sd(abs(belief_updates_bayes_corrected)) / sqrt(n()),
+    n = n()) %>%
+  ggplot(aes(return_pos_end_last_round, avg_update,
+      fill = favorable_move_since_last)) +
+    geom_col(position = 'dodge') +
+    geom_errorbar(aes(ymin = avg_update - se, ymax = avg_update + se),
+      width = .2, position = position_dodge(.9)) +
+    facet_grid(cols = vars(condition)) +
+    scale_fill_manual(values = c('#A5D7D2', '#6AB0AA')) +
+    labs(title = 'Belief updating using only participants with few inverse updates',
+      x = 'Position and Condition',
+      y = 'Mean Bayes Corrected Update',
+      fill = 'Favorability')
+
+# Add dots that split this View by "Holding" and "Shorting"
+dat_prepared <- dat_prepared %>%
+  group_by(return_pos_end_last_round, favorable_move_since_last,
+    hold_type_end_last_round, condition) %>%
+  summarise(avg_update = mean(belief_updates_bayes_corrected))
+
+p1 +
+  geom_point(data = dat_prepared, aes(
+    x = return_pos_end_last_round,
+    color = interaction(hold_type_end_last_round, favorable_move_since_last)),
+  position = position_dodge(.9), cex = 3) +
+  scale_color_manual(name = 'Hold Type',
+    labels = c('Holding', 'Shorting'),
+    breaks = c('Holding.Favorable', 'Shorting.Favorable'),
+    values = c(Holding.Favorable = 'darkblue', Shorting.Favorable = 'darkred',
+      Holding.Unfavorable = 'darkblue', Shorting.Unfavorable = 'darkred'))
+```
+
+```{r beliefs_end_p2_less_inverse}
+these_filters <- c('Holding Gain', 'Shorting Gain', 'Holding Loss', 'Shorting Loss')
+make_plot <- function(dat, this_filter) {
+  this_dat <- dat_main_task %>%
+    filter(majority_updates_p2 == this_filter,
+      n_update_types_in_p2 == 1,
+      round_label == 'end_p2') %>%
+    filter(participant %in% filter(dat_all_wide,
+      avg_inverse_updates < median(avg_inverse_updates))$participant) %>%
+    mutate(condition = factor(condition, levels = c(
+      'Baseline', 'Blocked Trades', 'Delayed Info')))
+
+  this_model <- lm(belief ~ condition, data = this_dat) %>%
+    coeftest(vcov = vcovCL, cluster = ~participant)
+
+  this_dat <- this_dat %>%
+    group_by(condition) %>%
+    summarise(avg_belief = mean(belief),
+      avg_bayesian_belief = mean(rational_belief),
+      n = n()) %>%
+    add_column(std_err = this_model[, 'Std. Error']) %>%
+    mutate(low_95ci = avg_belief - qt(.975, df = n - 1) * std_err,
+      high_95ci = avg_belief + qt(.975, df = n - 1) * std_err)
+
+  ggplot(this_dat, aes(x = condition, y = avg_belief)) +
+    geom_point() +
+    geom_line(group = 1) +
+    geom_errorbar(aes(ymin = low_95ci, ymax = high_95ci),
+      width = .05) +
+    geom_point(aes(y = avg_bayesian_belief), color = '#0033ee',
+      size = 7, shape = 13, show.legend = FALSE) +
+    labs(x = 'Condition', y = 'Average Belief at end of Phase Two',
+      title = str_c('Majority Updates from ', this_filter)) +
+    geom_hline(yintercept = 50, alpha = .5) +
+    ylim(25, 75)
+}
+plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
+# Generating the plots via patchwork:
+(plotlist[[1]] | plotlist[[2]]) /
+(plotlist[[3]] | plotlist[[4]])
+```
+<!-- TODO: (1) Look at the number of cases in each situation and think about whether there may be some interaction with selling decisions -->
+
+<!-- TODO: (1) Check whether "hold type" is done correctly in the updating plots! -->
+
+
+<!-- TODO: (1) Check only the pure paths ALSO in the treatments! -->
