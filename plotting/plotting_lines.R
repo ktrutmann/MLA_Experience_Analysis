@@ -150,13 +150,13 @@ make_plot <- function(dat, this_filter) {
       high_95ci = avg_belief + qt(.975, df = n - 1) * std_err)
 
   ggplot(this_dat, aes(x = condition, y = avg_belief)) +
+  	stat_summary(aes(y = avg_bayesian_belief), fun = mean, color = 'darkgrey', # '#0033ee',
+      size = 1, shape = 13, show.legend = FALSE) +
     geom_point() +
     geom_line(group = 1) +
     geom_errorbar(aes(ymin = low_95ci, ymax = high_95ci),
       width = .05) +
-  	stat_summary(aes(y = avg_bayesian_belief), fun = mean, color = '#0033ee',
-      size = 1, shape = 13, show.legend = FALSE) +
-    labs(x = 'Condition', y = 'Average Belief at end of Phase Two',
+    labs(x = 'Condition', y = 'Average Belief in %',
       title = str_c('Majority Updates from ', this_filter)) +
     geom_hline(yintercept = 50, alpha = .5) +
     ylim(25, 75)
@@ -168,7 +168,7 @@ plotlist <- lapply(these_filters, make_plot, dat = dat_main_task)
 
 ggsave(file.path('output', 'figures',
   'belief_end_p2_by_cond_and_hold_lines.pdf'), dev = 'pdf',
-	width = 30, height = 20, units = 'cm')
+	width = 20, height = 13, units = 'cm')
 
 # How does the condition influence the belief in a down/up drift at end_p2?
 master_list$plots$beliefs_end_p2_lines <- dat_main_task %>%
