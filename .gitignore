@@ -11,3 +11,4 @@
 *.bmp
 /renv/
 /output/
+*.html
