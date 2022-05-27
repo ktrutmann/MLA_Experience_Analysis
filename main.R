@@ -7,4 +7,7 @@ source(file.path('stats', 'descriptives.R'))
 source(file.path('stats', 'inference_beliefs.R'))
 source(file.path('stats', 'inference_trades.R'))
 
+source(file.path('plotting', '0_plotting_setup.R'))
+source(file.path('plotting', 'plotting_bars_and_boxes.R'))
+
 saveRDS(master_list, file.path('output', 'master_list.RDS'))
