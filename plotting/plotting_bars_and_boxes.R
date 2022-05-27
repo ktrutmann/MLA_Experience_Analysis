@@ -85,14 +85,14 @@ dat_prepared <- tibble(
     qnorm(.95)) %>%
   filter(Condition != 'Baseline')
 
-ggplot(dat_prepared,
+master_list$plots$belief_err_by_cond <- ggplot(dat_prepared,
   aes(Condition, estimate)) +
   geom_hline(yintercept = 0, col = 'darkgrey') +
   geom_col() +
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = .1) +
-  labs(y = 'Belief Difference to Bayes (Compared to Baseline)') +
+  labs(y = 'Belief Difference to Bayes (Compared to Baseline Condition)') +
   annotate('text', x = 2, y = -1.2, label = '*', size = 12)
-
+master_list$plots$belief_err_by_cond
 
 # Same thing but split by drift:
 dat_prepared <- tibble(
