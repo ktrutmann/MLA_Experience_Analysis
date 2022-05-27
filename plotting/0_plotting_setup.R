@@ -18,8 +18,9 @@ de_table <- read_delim(
  
 # Theming:
 theme_set(theme_minimal())
+greyscale <- c('lightgrey', 'darkgrey', '#555555')
 unibas_cols <- c('#A5D7D2', '#6AB0AA', '#4A908A')
-color_set <- unibas_cols  # Change color set here!
+color_set <- greyscale  # Change color set here!
 
 # Set up the master list:
 if (!'master_list' %in% ls()) master_list <- list()

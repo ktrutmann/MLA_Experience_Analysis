@@ -73,6 +73,53 @@ ggsave(file.path('output', 'figures',
   'belief_end_p2_by_cond_drift_hold_box.pdf'), dev = 'pdf')
 
 
+# Belief "Error" end_p2 ---------------------------------------------
+# Note: This assumes that you have sourced `inference_beliefs.R`
+
+dat_prepared <- tibble(
+  Condition = c('Baseline', 'Blocked Trades', 'Delayed Information'),
+  estimate = master_list$cond_on_belief_err_end_p2$coefficients,
+  lower_ci = estimate - master_list$cond_on_belief_err_end_p2$clust_str_err *
+    qnorm(.95),
+  upper_ci = estimate + master_list$cond_on_belief_err_end_p2$clust_str_err *
+    qnorm(.95)) %>%
+  filter(Condition != 'Baseline')
+
+ggplot(dat_prepared,
+  aes(Condition, estimate)) +
+  geom_hline(yintercept = 0, col = 'darkgrey') +
+  geom_col() +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = .1) +
+  labs(y = 'Belief Difference to Bayes (Compared to Baseline)') +
+  annotate('text', x = 2, y = -1.2, label = '*', size = 12)
+
+
+# Same thing but split by drift:
+dat_prepared <- tibble(
+  param_name = names(master_list$cond_drift_belief_err_end_p2$coefficients),
+  Condition = rep(c('Baseline', 'Blocked Trades', 'Delayed Information'), 2),
+  Drift = c(rep('Down', 3), rep('Up', 3)),
+  estimate = master_list$cond_drift_belief_err_end_p2$coefficients,
+  lower_ci = estimate - master_list$cond_drift_belief_err_end_p2$clust_str_err *
+    qnorm(.95),
+  upper_ci = estimate + master_list$cond_drift_belief_err_end_p2$clust_str_err *
+    qnorm(.95)) %>%
+  mutate(across(where(is.numeric),
+    function(x) if_else(str_detect(param_name, ':drift'),
+      x + estimate[param_name == 'driftUp'], x))) %>%
+  filter(param_name != '(Intercept)')
+
+ggplot(dat_prepared,
+  aes(Condition, estimate, fill = Drift)) +
+  geom_hline(yintercept = 0, col = 'darkgrey') +
+  geom_col(position = 'dodge') +
+  geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = .1,
+    position = position_dodge(width = .8)) +
+  scale_fill_manual(values = color_set[c(3, 1)]) +
+  labs(y = 'Belief Difference to Bayes (Compared to Baseline)') +
+  annotate('text', x = 1.8, y = -1.2, label = '*', size = 12) +
+  annotate('text', x = 2.8, y = -1, label = '*', size = 12)
+
 # Belief Updating ---------------------------------------------
 # Note: Double checked. Everything seems correct here...
 dat_prepared <- dat_main_task %>%
