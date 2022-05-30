@@ -1,5 +1,3 @@
-# TODO: (6) Jörg: Also look at all oucomes "split" by drift and price update.
-
 # Q: What were the earnings per condition and how do they compare?
 this_model <- dat_main_task %>%
 	filter(i_round_in_path == max(i_round_in_path)) %>%
@@ -248,6 +246,12 @@ dat_main_task %>%
   {lm(hold ~ condition, data = .)} %>% #nolint
   summary()
  # Apparently they do not. Makes sense since they're _less_ over-convinced.
+
+
+# Sanity check: Investment by condition.
+lm(hold_after_trade ~ drift,
+	data = filter(dat_main_task, round_label == 'end_p2')) %>%
+	summary()
 
 
 # Influence of beliefs on trades: ---------------------------------------

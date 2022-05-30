@@ -41,6 +41,7 @@ dat_all_wide <- dat %>%
 	dplyr::select(c(
 		participant = 'participant.code',
 		payoff = 'participant.payoff',
+		wrong_quiz_answers = 'Tutorial_Investment_Task.1.player.wrong_answers',
 		strategy = 'Strategy.1.player.strategy',
 		strategy_random = 'Strategy.1.player.strategy_random',
 		strategy_feeling = 'Strategy.1.player.strategy_feeling',

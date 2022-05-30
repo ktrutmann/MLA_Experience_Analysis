@@ -3,6 +3,14 @@
 # Save the whole wide dataset to use in the text:
 master_list$df <- dat_all_wide
 
+# Wrong updates in the initial Quiz:
+summary(dat_all_wide$wrong_quiz_answers)
+
+dat_all_wide %>%
+  count(wrong_quiz_answers) %>%
+  mutate(percentage = n / sum(n) * 100,
+    cumulative_percentage = cumsum(percentage))
+
 # What positions did they mainly update from in phase 2?
 dat_main_task %>%
   filter(i_round_in_path == 0) %>%
