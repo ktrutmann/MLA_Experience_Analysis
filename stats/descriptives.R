@@ -17,8 +17,8 @@ dat_main_task  %>%
   group_by(participant) %>%
   summarise(
     avg_wrong_updates = mean(belief_diff_since_last_flipped < 0, na.rm = TRUE)
-  ) %>%
-  print(n = 400)
+  )# %>%
+  # print(n = 400) # Comment for sourcing
 
 # Save participant comments:
 master_list$desc$comments <- na.omit(dat_all_wide$participant_comments)

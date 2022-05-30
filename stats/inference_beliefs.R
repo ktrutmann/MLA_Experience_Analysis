@@ -1,3 +1,6 @@
+library(tidyverse)
+
+
 # Absolute Beliefs ------------------------------------
 # Sanity Check: Are beliefs the same per cond at end_p1? -> They are not!
 # However, the difference is only 1.9 and .9 percentage points!
@@ -32,8 +35,9 @@ master_list$cond_on_belief_end_p2 <- this_model
 
 # Q: How do the conditions influence the "belief error" at end_p2?
 dat_prepared <- dat_main_task %>%
-  mutate(belief_error = abs(rational_belief - belief)) %>%
-  mutate(drift = ifelse(drift > .5, 'Up', 'Down')) %>%
+  mutate(belief_error = abs(rational_belief - belief),
+    drift = ifelse(drift > .5, 'Up', 'Down'),
+    portf_type = str_extract(majority_updates_p2, 'Shorting|Holding')) %>%
   filter(round_label == 'end_p2')
 
 this_model <- lm(belief_error ~ condition, data = dat_prepared)
@@ -51,6 +55,13 @@ master_list$cond_on_belief_err_end_p2 <- this_model
 this_model_drift$clust_str_err <- this_model_clust_drift[, 2]
 this_model_drift$p_val_clust <- this_model_clust_drift[, 4] / 2
 master_list$cond_drift_belief_err_end_p2 <- this_model_drift
+
+
+# Q: Split this by shoriting/holding:
+this_model_portf <- lm(belief_error ~ condition * portf_type,
+  data = filter(dat_prepared, !is.na(portf_type)))
+this_model_clust <- coeftest(this_model_portf, vcov = vcovCL,
+  cluster = ~participant + distinct_path_id)
 
 
 # Belief Updating ------------------------------------

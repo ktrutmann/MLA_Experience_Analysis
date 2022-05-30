@@ -103,6 +103,7 @@ this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$de_vs_rational_last_period <- this_model
 # No effect for the final-round DE measure.
 
+
 # Hit rates: ----------------------------------------------------------
 # Hit rate of the final decision by condition:
 this_model <- dat_main_task %>%
@@ -177,6 +178,36 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
 master_list$cond_drift_final_binary_drift_hit <- this_model  # nolint
+
+
+# Same, but with the portfolio type as a predictor:
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round') %>%
+	mutate(hit_rate_final_round = if_else(drift > .5, hold, -hold),
+    portf_type = str_extract(majority_updates_p2, 'Shorting|Holding')) %>%
+	{lm(hit_rate_final_round ~ condition * portf_type, data = .)} # nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$cond_portf_on_final_drift_hit <- this_model
+
+
+# Binarized drift hit rate including drift as a predictor:
+this_model <- dat_main_task %>%
+	filter(round_label == 'extra_round', hold != 0) %>%
+	mutate(hit_rate_final_round = if_else((drift > .5) == (hold > 0), 1, 0),
+    portf_type = str_extract(majority_updates_p2, 'Shorting|Holding')) %>%
+	{glm(hit_rate_final_round ~ condition * portf_type, data = ., family = 'binomial')} # nolint
+
+this_model_clust <- coeftest(this_model, vcov = vcovCL,
+	cluster = ~participant + distinct_path_id)
+# Add the cluster robust standard errors and p-values
+this_model$clust_str_err <- this_model_clust[, 2]
+this_model$p_val_clust <- this_model_clust[, 4] / 2
+master_list$cond_portf_final_binary_drift_hit <- this_model  # nolint
 
 
 # Other Analyses: --------------------------------------------------
