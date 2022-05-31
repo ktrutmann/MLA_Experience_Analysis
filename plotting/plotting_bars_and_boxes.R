@@ -77,21 +77,23 @@ ggsave(file.path('output', 'figures',
 # Note: This assumes that you have sourced `inference_beliefs.R`
 
 dat_prepared <- tibble(
-  Condition = c('Baseline', 'Blocked Trades', 'Delayed Information'),
+  condition = c('Baseline', 'Blocked Trades', 'Delayed Information'),
   estimate = master_list$cond_on_belief_err_end_p2$coefficients,
   lower_ci = estimate - master_list$cond_on_belief_err_end_p2$clust_str_err *
-    qnorm(.95),
+    qnorm(.975),
   upper_ci = estimate + master_list$cond_on_belief_err_end_p2$clust_str_err *
-    qnorm(.95)) %>%
-  filter(Condition != 'Baseline')
+    qnorm(.975)) %>%
+  filter(condition != 'Baseline')
 
 master_list$plots$belief_err_by_cond <- ggplot(dat_prepared,
-  aes(Condition, estimate)) +
+  aes(condition, estimate)) +
   geom_hline(yintercept = 0, col = 'darkgrey') +
   geom_col() +
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = .1) +
-  labs(y = 'Belief Difference to Bayes\n(Compared to Baseline Condition)') +
-  annotate('text', x = 2, y = -1.2, label = '*', size = 12)
+  labs(x = '',
+    y = 'Belief Difference to Bayesian Benchmark\n(Compared to Baseline Condition)') +
+  annotate('text', x = 2, y = -1.3, label = '*', size = 12) +
+  theme(panel.grid.major.x = element_blank())
 master_list$plots$belief_err_by_cond
 
 # Same thing but split by drift:
