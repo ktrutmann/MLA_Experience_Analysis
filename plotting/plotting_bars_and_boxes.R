@@ -88,7 +88,7 @@ dat_prepared <- tibble(
 master_list$plots$belief_err_by_cond <- ggplot(dat_prepared,
   aes(condition, estimate)) +
   geom_hline(yintercept = 0, col = 'darkgrey') +
-  geom_col() +
+  geom_col(fill = color_set[2]) +
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = .1) +
   labs(x = '',
     y = 'Belief Difference to Bayesian Benchmark\n(Compared to Baseline Condition)') +

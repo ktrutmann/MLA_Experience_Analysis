@@ -123,6 +123,7 @@ master_list$cond_on_final_hit <- this_model
 this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
 	mutate(hit_rate_final_round = if_else(drift > .5, hold, -hold)) %>%
+  left_join(select(dat_all_wide, c('participant', 'wrong_quiz_answers'))) %>%
 	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
@@ -138,6 +139,7 @@ master_list$cond_on_final_drift_hit <- this_model
 this_model <- dat_main_task %>%
 	filter(round_label == 'extra_round', hold != 0) %>%
 	mutate(hit_rate_final_round = if_else((drift > .5) == (hold > 0), 1, 0)) %>%
+  left_join(select(dat_all_wide, c('participant', 'wrong_quiz_answers'))) %>%
 	{glm(hit_rate_final_round ~ condition, data = ., family = 'binomial')} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,

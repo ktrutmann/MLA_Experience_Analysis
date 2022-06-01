@@ -38,6 +38,7 @@ dat_prepared <- dat_main_task %>%
   mutate(belief_error = abs(rational_belief - belief),
     drift = ifelse(drift > .5, 'Up', 'Down'),
     portf_type = str_extract(majority_updates_p2, 'Shorting|Holding')) %>%
+  left_join(select(dat_all_wide, c('participant', 'wrong_quiz_answers'))) %>%
   filter(round_label == 'end_p2')
 
 this_model <- lm(belief_error ~ condition, data = dat_prepared)
