@@ -34,6 +34,12 @@ master_list$desc$purpose <- na.omit(dat_all_wide$purpose)
 master_list$desc$strat <- na.omit(dat_all_wide$strategy)
 master_list$desc$saw_pattern <- na.omit(dat_all_wide$recognised_pattern)
 
+# Amount of investing in general:
+master_list$desc$avg_inv <- dat_main_task %>%
+  filter(!str_detect(round_label, 'p1'),
+    condition == 'Baseline') %>%
+  summarize(avg_inv = mean(abs(hold)))
+
 # In the last round, did they short more often during a down drift?
 dat_main_task %>%
   filter(round_label == 'extra_round') %>%
@@ -45,9 +51,10 @@ dat_main_task %>%
 # In the last round, did they have a lower belief during a down drift?
 dat_main_task %>%
   filter(round_label == 'end_p2') %>%
-  group_by(drift) %>%
+  group_by(drift, condition) %>%
   summarise(avg_belief = mean(belief),
-    sd_belief = sd(belief))
+    sd_belief = sd(belief),
+    avg_bayes = mean(rational_belief))
 
 # In any investable round, did their belief match their investment?
 dat_main_task %>%

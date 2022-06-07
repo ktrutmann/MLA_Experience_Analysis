@@ -14,7 +14,7 @@ master_list$earnings_per_cond <- this_model
 
 # Q: Earnings per condition and drift:
 dat_prepared <- dat_main_task %>%
-	filter(i_round_in_path == max(i_round_in_path)) %>%
+	filter(round_label == 'extra_round') %>%
 	select(condition, participant, distinct_path_id, payoff, drift) %>%
 	mutate(drift = ifelse(drift > .5, 'Up', 'Down'))
 
@@ -120,17 +120,18 @@ master_list$cond_on_final_hit <- this_model
 
 # Drift-Hit rate of the final decision by condition:
 # I.e. how often did they invest according to the drift?
-this_model <- dat_main_task %>%
+this_dat <- dat_main_task %>%
 	filter(round_label == 'extra_round') %>%
 	mutate(hit_rate_final_round = if_else(drift > .5, hold, -hold)) %>%
-  left_join(select(dat_all_wide, c('participant', 'wrong_quiz_answers'))) %>%
-	{lm(hit_rate_final_round ~ condition, data = .)} # nolint
+  left_join(select(dat_all_wide, c('participant', 'wrong_quiz_answers')))
 
+this_model <-	lm(hit_rate_final_round ~ condition, data = this_dat)
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
+this_model$data <- this_dat
 master_list$cond_on_final_drift_hit <- this_model
 
 
@@ -146,7 +147,10 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 	cluster = ~participant + distinct_path_id)
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
-this_model$p_val_clust <- this_model_clust[, 4] / 2
+# Correct p-value since we had a directed hypothesis:
+this_model$p_val_clust <- if_else(this_model$coefficients < 0,
+	1 - (this_model_clust[, 4] / 2), this_model_clust[, 4] / 2)
+names(this_model$p_val_clust) <- names(this_model_clust[, 4])
 master_list$cond_on_final_binary_drift_hit <- this_model
 
 
