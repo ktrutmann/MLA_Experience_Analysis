@@ -269,7 +269,7 @@ if (rerun_olog) {
 		mutate(hold_after_trade = factor(
 			hold_after_trade, levels = -4:4, ordered = TRUE))
 
-	olog_beliefs <- clmm(hold_after_trade ~ belief * condition + (1 | participant),
+	olog_beliefs <- clmm(hold_after_trade ~ belief * drift + (1 | participant),
 		data = dat_prepared)
 
 	saveRDS(olog_beliefs, file.path('output', 'ordered_log_reg_beliefs_on_trades.RDS'))

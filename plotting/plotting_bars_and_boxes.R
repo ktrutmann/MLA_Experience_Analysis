@@ -92,7 +92,7 @@ master_list$plots$belief_err_by_cond <- ggplot(dat_prepared,
   geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = .1) +
   labs(x = '',
     y = 'Belief Difference to Bayesian Benchmark\n(Compared to Baseline Condition)') +
-  annotate('text', x = 2, y = -1.3, label = '*', size = 12) +
+  annotate('text', x = 2, y = -1.33, label = '*', size = 10) +
   theme(panel.grid.major.x = element_blank())
 master_list$plots$belief_err_by_cond
 
