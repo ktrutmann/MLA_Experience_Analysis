@@ -51,10 +51,12 @@ this_model_clust_drift <- coeftest(this_model_drift, vcov = vcovCL,
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
+this_model$data <- dat_prepared
 master_list$cond_on_belief_err_end_p2 <- this_model
 
 this_model_drift$clust_str_err <- this_model_clust_drift[, 2]
 this_model_drift$p_val_clust <- this_model_clust_drift[, 4] / 2
+this_model_drift$data <- dat_prepared
 master_list$cond_drift_belief_err_end_p2 <- this_model_drift
 
 

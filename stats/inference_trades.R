@@ -166,6 +166,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
+this_model$data <- filter(dat_main_task, round_label == 'extra_round')
 master_list$cond_drift_on_final_drift_hit <- this_model
 
 
