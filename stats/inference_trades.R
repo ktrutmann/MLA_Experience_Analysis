@@ -231,9 +231,11 @@ master_list$cond_on_abs_inv_amount <- this_model
 
 
 # Check for Myopic loss aversion (MLA)
-this_model <- dat_main_task %>%
+dat_prepared <- dat_main_task %>%
 	filter(round_label == 'end_p1') %>%
-	mutate(abs_hold_after_trade = abs(hold_after_trade)) %>%
+	mutate(abs_hold_after_trade = abs(hold_after_trade))
+
+this_model <- dat_prepared %>%
 	{lm(abs_hold_after_trade ~ condition, data = .)} # nolint
 
 this_model_clust <- coeftest(this_model, vcov = vcovCL,
@@ -241,6 +243,7 @@ this_model_clust <- coeftest(this_model, vcov = vcovCL,
 # Add the cluster robust standard errors and p-values
 this_model$clust_str_err <- this_model_clust[, 2]
 this_model$p_val_clust <- this_model_clust[, 4] / 2
+this_model$data <- dat_prepared
 master_list$mla_inv_by_cond <- this_model
 
 
